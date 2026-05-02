@@ -1107,7 +1107,7 @@ function buildPDF() {
     doc.text('Unit',   xUN+CUN-2, y+5.5, {align:'right'});
     doc.text('Qty',    xQ+CQ-2,   y+5.5, {align:'right'});
     doc.text('Unit Cost',  xUC+CUC-2, y+5.5, {align:'right'});
-    doc.text('Total (GST)',xT-2,  y+5.5, {align:'right'});
+    doc.text('Total (GST)',xT-2,y+5.5,{align:'right'});
     y+=8;
   }
   scopeHdr();
@@ -1126,7 +1126,7 @@ function buildPDF() {
     sf('normal',8.5,MUTED);
     doc.text(item.unitCost>0?fmt(item.unitCost):'—', xUC+CUC-2, y+6, {align:'right'});
     sf('bold',8.5,INK);
-    doc.text(item.price>0?fmt(item.price):'—', xT-2, y+6, {align:'right'});
+    doc.text(item.price>0?fmt(item.price):'—', xT-2,y+5.5,{align:'right'});
     y+=rh;
   }
   chk(24);
