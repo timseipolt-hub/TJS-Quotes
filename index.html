@@ -1137,7 +1137,7 @@ function buildPDF() {
   for(var ti=0;ti<trows.length;ti++){
     rf(PW-MR-94,94,y,8,trows[ti][2]?NAVY:LGREY);
     sf('bold',8,trows[ti][2]?[180,200,230]:MUTED); doc.text(trows[ti][0],PW-MR-91,y+5.5);
-    sf('bold',9,trows[ti][2]?WHITE:INK); doc.text(trows[ti][1],xP-2,y+5.5,{align:'right'});
+    sf('bold',9,trows[ti][2]?WHITE:INK); doc.text(trows[ti][1],xT-2,y+5.5,{align:'right'});
     y+=8;
   }
   y+=5;
@@ -1169,12 +1169,12 @@ function buildPDF() {
   chk(44,44); sh('Payment Schedule');
   var pr=[['Deposit (10%)','On acceptance',fmt(dep)],['Balance on Completion','On completion',fmt(grand-dep)],['TOTAL','',fmt(grand)]];
   rf(ML,CW,y,8,NAVY); sf('bold',8,WHITE);
-  doc.text('Stage',ML+2,y+5.5); doc.text('When Due',ML+82,y+5.5); doc.text('Amount (incl. GST)',xP-2,y+5.5,{align:'right'});
+  doc.text('Stage',ML+2,y+5.5); doc.text('When Due',ML+82,y+5.5); doc.text('Amount (incl. GST)',xT-2,y+5.5,{align:'right'});
   y+=8;
   for(var pi=0;pi<pr.length;pi++){
     rf(ML,CW,y,8,pi===pr.length-1?LBLUE:pi%2===0?WHITE:LGREY);
     sf(pi===pr.length-1?'bold':'normal',8.5,INK);
-    doc.text(pr[pi][0],ML+2,y+5.5); doc.text(pr[pi][1],ML+82,y+5.5); doc.text(pr[pi][2],xP-2,y+5.5,{align:'right'});
+    doc.text(pr[pi][0],ML+2,y+5.5); doc.text(pr[pi][1],ML+82,y+5.5); doc.text(pr[pi][2],xT-2,y+5.5,{align:'right'});
     y+=8;
   }
   y+=4;
