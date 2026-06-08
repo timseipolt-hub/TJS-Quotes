@@ -1173,10 +1173,13 @@ function buildPDF() {
     y+=11;
     var maxR=Math.max(incs.length,excs.length);
     for(var ri=0;ri<maxR;ri++){
-      chk(6);
-      if(incs[ri]){ sf('normal',8.5,GREEN);doc.text('\u2713',lx,y+1);sf('normal',8.5,INK);doc.text(doc.splitTextToSize(incs[ri],half-6),lx+5,y+1); }
-      if(excs[ri]){ sf('normal',8.5,RED);doc.text('\u2717',rx,y+1);sf('normal',8.5,INK);doc.text(doc.splitTextToSize(excs[ri],half-6),rx+5,y+1); }
-      y+=5.5;
+      var incLines=incs[ri]?doc.splitTextToSize(incs[ri],half-8):[];
+      var excLines=excs[ri]?doc.splitTextToSize(excs[ri],half-8):[];
+      var rowH=Math.max(incLines.length,excLines.length,1)*4.8+3;
+      chk(rowH);
+      if(incs[ri]){ sf('normal',8.5,GREEN);doc.text('\u2713',lx,y+4);sf('normal',8.5,INK);doc.text(incLines,lx+5,y+4); }
+      if(excs[ri]){ sf('normal',8.5,RED);doc.text('\u2717',rx,y+4);sf('normal',8.5,INK);doc.text(excLines,rx+5,y+4); }
+      y+=rowH;
     }
     y+=4;
   }
