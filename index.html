@@ -585,7 +585,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
     <div class="panel" id="p9">
       <div class="cal-banner off" id="calBanner">
         <span id="calBannerMsg">Calendar not connected.</span>
-        <button class="btn btn-p" id="btnCalConnect" style="font-size:12px;padding:7px 14px">&#128197; Connect Google Calendar</button>
+        <span><button class="btn btn-p" id="btnCalConnect" style="font-size:12px;padding:7px 14px">&#128197; Connect Google Calendar</button>
+        <button class="btn btn-o" id="btnCalPull" style="font-size:12px;padding:7px 14px">&#8635; Refresh from Calendar</button></span>
       </div>
       <div class="jobs-summary" id="jobsSummary"></div>
       <div id="jobsReady"></div>
@@ -2401,7 +2402,7 @@ function connectCalendar() {
     if (!tok) throw new Error('Google did not return a calendar token.');
     lsSet('tjs_cal_tok', JSON.stringify({ token: tok, exp: Date.now() + 55 * 60000, uid: currentUser.uid }));
     updateCalBanner();
-    return syncPendingJobs();
+    return syncPendingJobs().then(function() { return pullFromCalendar(true); });
   });
 }
 function updateCalBanner() {
@@ -2411,7 +2412,7 @@ function updateCalBanner() {
   var pending = jobsCache.filter(function(j) { return j.calPending; }).length;
   el.className = 'cal-banner ' + (ok ? 'ok' : 'off');
   document.getElementById('calBannerMsg').textContent = ok
-    ? 'Calendar connected. Booked jobs go straight to TJS Jobs.'
+    ? 'Calendar connected. Jobs sync both ways with TJS Jobs.'
     : 'Calendar not connected' + (pending ? ' (' + pending + ' job' + (pending > 1 ? 's' : '') + ' waiting to sync)' : '') + '. Connect once per session.';
   document.getElementById('btnCalConnect').style.display = ok ? 'none' : 'inline-flex';
 }
@@ -2437,20 +2438,27 @@ function addMinutes(dateStr, timeStr, mins) {
   return d.toISOString().slice(0, 19);
 }
 function buildEvent(j) {
-  var title = [j.cname || 'Client', j.jobType || 'Job', j.suburb || ''].filter(Boolean).join(' – ');
+  var title = [j.cname || 'Client', j.jobType, j.suburb].filter(Boolean).join(' – ');
   var lines = [];
-  if (j.qno)   lines.push('Quote #' + j.qno);
-  if (j.cmob)  lines.push('Phone: ' + j.cmob);
-  if (j.cemail) lines.push('Email: ' + j.cemail);
-  if (j.value) lines.push('Value: ' + fmt(Number(j.value)) + ' (quote total)');
-  if (j.scope) lines.push('', 'Scope:', j.scope);
-  if (j.access) lines.push('', 'Access: ' + j.access);
-  if (j.notes) lines.push('', 'Notes: ' + j.notes);
-  lines.push('', 'Status: ' + JOB_STATUS[j.status].label);
+  if (j.source === 'calendar') {
+    // Added in Google Calendar: keep the title and notes as written there
+    title = j.cname || 'Job';
+    if (j.scope) lines.push(j.scope);
+    if (j.notes) lines.push('', 'Notes: ' + j.notes);
+  } else {
+    if (j.qno)    lines.push('Quote #' + j.qno);
+    if (j.cmob)   lines.push('Phone: ' + j.cmob);
+    if (j.cemail) lines.push('Email: ' + j.cemail);
+    if (j.value)  lines.push('Value: ' + fmt(Number(j.value)) + ' (quote total)');
+    if (j.scope)  lines.push('', 'Scope:', j.scope);
+    if (j.access) lines.push('', 'Access: ' + j.access);
+    if (j.notes)  lines.push('', 'Notes: ' + j.notes);
+    lines.push('', 'Status: ' + JOB_STATUS[j.status].label);
+  }
   var ev = {
     summary: title,
     location: j.address || '',
-    description: lines.join('\n'),
+    description: lines.join('\n').trim(),
     colorId: JOB_STATUS[j.status].color || '10'
   };
   if (j.allDay) {
@@ -2504,6 +2512,75 @@ function syncPendingJobs() {
       return saveJobWithSync(j.id, data);
     });
   }, Promise.resolve());
+}
+
+
+// ── Pull jobs added directly in Google Calendar (and pick up moved times)
+var lastPull = 0;
+function localParts(dt) {
+  // dt like 2026-11-04T09:00:00+11:00 -> date/time as written in that zone
+  return { date: dt.slice(0, 10), time: dt.slice(11, 16) };
+}
+function eventToFields(ev) {
+  var f = {};
+  if (ev.start && ev.start.date) {
+    f.allDay = true; f.date = ev.start.date;
+    var days = Math.max(1, Math.round((new Date(ev.end.date) - new Date(ev.start.date)) / 864e5));
+    f.hours = days * 8; f.time = '08:00';
+  } else if (ev.start && ev.start.dateTime) {
+    var a = localParts(ev.start.dateTime);
+    f.allDay = false; f.date = a.date; f.time = a.time;
+    f.hours = Math.round((new Date(ev.end.dateTime) - new Date(ev.start.dateTime)) / 36e5 * 4) / 4;
+  }
+  return f;
+}
+function pullFromCalendar(force) {
+  if (!getCalToken() || !currentUser) return Promise.resolve();
+  if (!force && Date.now() - lastPull < 120000) return Promise.resolve();
+  lastPull = Date.now();
+  var from = new Date(); from.setDate(from.getDate() - 45);
+  var to = new Date(); to.setDate(to.getDate() + 120);
+  var q = '?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=' + encodeURIComponent(from.toISOString()) + '&timeMax=' + encodeURIComponent(to.toISOString());
+  return calFetch('GET', q).then(function(res) {
+    if (!res || !res.items) return;
+    var byEvent = {};
+    jobsCache.forEach(function(j) { if (j.calEventId) byEvent[j.calEventId] = j; });
+    var ignored = {};
+    try { ignored = JSON.parse(lsGet('tjs_cal_ignore') || '{}'); } catch (e) {}
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var batch = db.batch(), n = 0;
+    res.items.forEach(function(ev) {
+      if (ev.status === 'cancelled' || !ev.start) return;
+      if (ev.recurringEventId || ignored[ev.id]) return; // skip repeating blocks (eg regular shifts)
+      var f = eventToFields(ev);
+      var j = byEvent[ev.id];
+      if (j) {
+        // Event moved or resized in Calendar: bring the job into line
+        if (j.date !== f.date || j.time !== f.time || j.hours !== f.hours || !!j.allDay !== f.allDay) {
+          batch.set(jobsCol().doc(j.id), Object.assign(f, { updatedAt: Date.now() }), { merge: true }); n++;
+        }
+        return;
+      }
+      var loc = ev.location || '';
+      batch.set(jobsCol().doc('cal_' + ev.id.replace(/\W/g, '_')), Object.assign({
+        source: 'calendar', quoteId: null, qno: '',
+        cname: ev.summary || 'Calendar job', cmob: '', cemail: '',
+        address: loc, suburb: (loc.split(',')[1] || '').trim(),
+        jobType: '', scope: ev.description || '', access: '', notes: '', value: 0,
+        status: f.date < todayStr ? 'done' : 'booked',
+        calEventId: ev.id, calLink: ev.htmlLink || null, calPending: false,
+        createdAt: Date.now(), updatedAt: Date.now()
+      }, f)); n++;
+    });
+    if (n) return batch.commit();
+  }).catch(function(err) {
+    if (!(err && err.needAuth)) console.error('Calendar pull failed:', err);
+  });
+}
+function ignoreCalEvent(eventId) {
+  var ignored = {};
+  try { ignored = JSON.parse(lsGet('tjs_cal_ignore') || '{}'); } catch (e) {}
+  ignored[eventId] = 1; lsSet('tjs_cal_ignore', JSON.stringify(ignored));
 }
 
 // ── Create a job from a quote
@@ -2600,6 +2677,7 @@ function setJobStatus(id, status) {
 function deleteJob(id) {
   var j = jobsCache.filter(function(x) { return x.id === id; })[0];
   if (!j || !confirm('Delete job for ' + (j.cname || 'client') + '?' + (j.calEventId ? '\nThe calendar event will be removed too.' : ''))) return;
+  if (j.calEventId) ignoreCalEvent(j.calEventId);
   var p = j.calEventId ? calFetch('DELETE', '/' + encodeURIComponent(j.calEventId)).catch(function(err) {
     if (err && err.needAuth) return connectCalendar().then(function() {
       return calFetch('DELETE', '/' + encodeURIComponent(j.calEventId));
@@ -2617,6 +2695,7 @@ function fmtJobDate(j) {
 }
 function renderJobs() {
   updateCalBanner();
+  pullFromCalendar(false);
   var todayStr = new Date().toISOString().slice(0, 10);
   var groups = [
     { key:'unscheduled', title:'Not booked yet', items: [] },
@@ -2702,6 +2781,13 @@ function initJobs() {
     connectCalendar().then(renderJobs).catch(function(err) {
       if (err && err.code === 'auth/popup-closed-by-user') return;
       alert('Could not connect Google Calendar.\n\n' + (err.message || err));
+    });
+  });
+  document.getElementById('btnCalPull').addEventListener('click', function() {
+    var p = getCalToken() ? Promise.resolve() : connectCalendar();
+    p.then(function() { return pullFromCalendar(true); }).then(renderJobs).catch(function(err) {
+      if (err && err.code === 'auth/popup-closed-by-user') return;
+      alert('Could not refresh from Google Calendar.\n\n' + (err.message || err));
     });
   });
   document.getElementById('jfAllDay').addEventListener('change', function() {
