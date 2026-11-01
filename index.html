@@ -193,6 +193,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 #userName{font-size:12px;color:rgba(255,255,255,.65);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #btnSignOut{font-size:10px;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:3px;font-family:'DM Sans',sans-serif}
 #btnSignOut:hover{color:rgba(255,255,255,.7)}
+
+/* Jobs */
+.cal-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 16px;border-radius:8px;font-size:13px;margin-bottom:18px}
+.cal-banner.ok{background:#e8f5e9;color:#2e7d32}
+.cal-banner.off{background:#fffbea;color:#8a6200;border:1.5px solid #f0d98a}
+.jobs-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.js-stat{background:var(--cream);border-radius:8px;padding:14px 16px}
+.js-n{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy)}
+.js-l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.jobs-ready{background:#f0f5fc;border:1.5px solid var(--lblue);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:2.2}
+.jobs-group-title{font-family:'DM Serif Display',serif;font-size:15px;color:var(--navy);margin:22px 0 8px;display:flex;align-items:center;gap:8px}
+.js-status{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:4px 6px;border-radius:6px;border:1.5px solid var(--stone);cursor:pointer}
+.js-un{background:#f5f5f5;color:#555}.js-bk{background:#e8f5e9;color:#2e7d32}.js-dn{background:#e3f2fd;color:#1565c0}.js-inv{background:#eceff1;color:#546e7a}
+.js-flag{font-size:10.5px;color:#b07c00;font-weight:600}
+.js-late td{background:#fffdf3}
+.js-tel{font-size:11px;color:var(--navy);text-decoration:none;margin-left:4px}
+#jobForm{display:none;border:2px solid var(--navy);border-radius:10px;padding:20px 22px;margin-bottom:22px;background:#fff}
+@media(max-width:700px){.jobs-summary{grid-template-columns:1fr}.hist-table{font-size:12px}}
 </style>
 </head>
 <body>
@@ -241,7 +259,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
     <button class="nav-btn"    id="nb6"><span class="dot"></span>Address Autocomplete</button>
     <button class="nav-btn"    id="nb7"><span class="dot"></span>Quote History <span id="histBadge" style="background:var(--gold);color:var(--ink);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px"></span></button>
     <button class="nav-btn"    id="nb8"><span class="dot"></span>Dashboard</button>
-    <div class="sfooter"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bbd2d5ddd4fbcfd1c8d695d8d4d695dace">[email&#160;protected]</a><br>0434 974 048<br>tjsm.com.au<br>ABN: 41 178 053 874</div>
+    <button class="nav-btn"    id="nb9"><span class="dot"></span>Jobs &amp; Schedule <span id="jobsBadge" style="background:var(--gold);color:var(--ink);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px"></span></button>
+    <div class="sfooter"><a href="mailto:info@tjsm.com.au" style="color:inherit">info@tjsm.com.au</a><br>0434 974 048<br>tjsm.com.au<br>ABN: 41 178 053 874</div>
   </aside>
 
   <main class="main">
@@ -562,6 +581,65 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
       </div>
     </div>
 
+    <!-- P9: JOBS & SCHEDULE -->
+    <div class="panel" id="p9">
+      <div class="cal-banner off" id="calBanner">
+        <span id="calBannerMsg">Calendar not connected.</span>
+        <button class="btn btn-p" id="btnCalConnect" style="font-size:12px;padding:7px 14px">&#128197; Connect Google Calendar</button>
+      </div>
+      <div class="jobs-summary" id="jobsSummary"></div>
+      <div id="jobsReady"></div>
+
+      <div id="jobForm">
+        <div class="sh" style="margin-bottom:14px"><span id="jobFormTitle">New Job</span></div>
+        <input type="hidden" id="jfQuoteId">
+        <div class="g2" style="margin-bottom:12px">
+          <div class="field"><label>Client</label><input id="jfCname"></div>
+          <div class="field"><label>Job type</label><input id="jfType" placeholder="e.g. Fence repair"></div>
+        </div>
+        <div class="g2" style="margin-bottom:12px">
+          <div class="field"><label>Site address</label><input id="jfAddr"></div>
+          <div class="field"><label>Suburb</label><input id="jfSuburb"></div>
+        </div>
+        <div class="g3" style="margin-bottom:12px">
+          <div class="field"><label>Mobile</label><input id="jfMob"></div>
+          <div class="field"><label>Email</label><input id="jfEmail" type="email"></div>
+          <div class="field"><label>Quote # / Value $</label>
+            <div style="display:flex;gap:6px"><input id="jfQno" style="width:45%"><input id="jfValue" type="number" step="0.01" style="width:55%"></div></div>
+        </div>
+        <div class="g3" style="margin-bottom:12px">
+          <div class="field"><label>Date</label><input id="jfDate" type="date"></div>
+          <div class="field"><label>Start time</label><input id="jfTime" type="time" value="08:00"></div>
+          <div class="field"><label>Hours on site</label><input id="jfHours" type="number" step="0.5" min="0.5" value="4"></div>
+        </div>
+        <div class="g2" style="margin-bottom:12px">
+          <div class="field"><label>Status</label>
+            <select id="jfStatus">
+              <option value="unscheduled">Not booked</option>
+              <option value="booked">Booked</option>
+              <option value="done">Done, to invoice</option>
+              <option value="invoiced">Invoiced</option>
+            </select></div>
+          <div class="field" style="justify-content:flex-end"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)"><input type="checkbox" id="jfAllDay"> All day (multi day: 8 hours per day)</label></div>
+        </div>
+        <div class="field" style="margin-bottom:12px"><label>Scope</label><textarea id="jfScope" rows="4"></textarea></div>
+        <div class="g2" style="margin-bottom:16px">
+          <div class="field"><label>Site access</label><input id="jfAccess"></div>
+          <div class="field"><label>Notes</label><input id="jfNotes"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
+          <button class="btn btn-o" id="btnJobDelete" style="color:var(--red);display:none">Delete</button>
+          <div style="display:flex;gap:10px;margin-left:auto">
+            <button class="btn btn-o" id="btnJobCancel">Cancel</button>
+            <button class="btn btn-p" id="btnJobSave">Save Job</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sh" style="justify-content:space-between">Jobs <button class="btn btn-g" id="btnJobNew" style="font-size:12px;padding:7px 14px">+ New Job</button></div>
+      <div id="jobsList"></div>
+    </div>
+
   </main>
 </div>
 
@@ -614,7 +692,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 (function() {
 'use strict';
 
@@ -624,10 +702,10 @@ var liCount  = 0;
 var currentQuoteId     = null; // Firestore doc ID of quote being edited
 var currentQuoteStatus = 'draft'; // tracks current quote's status
 
-var PANELS = ['pWelcome','p0','p1','p2','p3','p4','p5','p6','p7','p8'];
-var NAVS   = [null,'nb0','nb1','nb2','nb3','nb4','nb5','nb6','nb7','nb8'];
-var PROG   = [0, 16, 33, 50, 67, 84, 50, 50, 50, 50];
-var TITLES = ['Welcome','Job Details','Scope of Works','Inclusions & Notes','Payment','Preview & Export','QBO Setup Guide','Address Autocomplete','Quote History','Dashboard'];
+var PANELS = ['pWelcome','p0','p1','p2','p3','p4','p5','p6','p7','p8','p9'];
+var NAVS   = [null,'nb0','nb1','nb2','nb3','nb4','nb5','nb6','nb7','nb8','nb9'];
+var PROG   = [0, 16, 33, 50, 67, 84, 50, 50, 50, 50, 50];
+var TITLES = ['Welcome','Job Details','Scope of Works','Inclusions & Notes','Payment','Preview & Export','QBO Setup Guide','Address Autocomplete','Quote History','Dashboard','Jobs & Schedule'];
 var SUBS   = [
   'What would you like to do?',
   'Fill in client and site information.',
@@ -638,13 +716,14 @@ var SUBS   = [
   'One-time setup to connect to QuickBooks Online.',
   'Enable live address suggestions as you type.',
   'All saved quotes — reload, re-export or delete.',
-  'Overview of all quotes by status and overdue tracking.'
+  'Overview of all quotes by status and overdue tracking.',
+  'Book accepted quotes into your TJS Jobs calendar and track them to invoice.'
 ];
 
 // Panel index constants for readability
 var IDX_WELCOME = 0, IDX_DETAILS = 1, IDX_SCOPE = 2, IDX_NOTES = 3,
     IDX_PAYMENT = 4, IDX_EXPORT = 5, IDX_QBO = 6, IDX_ADDR = 7,
-    IDX_HISTORY = 8, IDX_DASH = 9;
+    IDX_HISTORY = 8, IDX_DASH = 9, IDX_JOBS = 10;
 
 // ── NAV
 function go(idx, skipDraft) {
@@ -680,6 +759,7 @@ function go(idx, skipDraft) {
   if (idx === IDX_EXPORT)  { buildSum(); showQuoteStatusBar(); }
   if (idx === IDX_HISTORY) renderHistory();
   if (idx === IDX_DASH)    renderDashboard();
+  if (idx === IDX_JOBS)    renderJobs();
   if (idx === IDX_WELCOME) updateWelcomeCount();
   window.scrollTo(0, 0);
 }
@@ -1471,11 +1551,13 @@ auth.onAuthStateChanged(function(user) {
     document.getElementById('loginOverlay').style.display = 'none';
     showUserBar(user);
     startRealtimeSync();
+    startJobsSync();
     assignNextQuoteNumber();
   } else {
     currentUser = null;
     document.getElementById('loginOverlay').style.display = 'flex';
     if (unsubscribeListener) { unsubscribeListener(); unsubscribeListener = null; }
+    stopJobsSync();
     setSyncStatus('offline', 'Not signed in');
   }
 });
@@ -1793,6 +1875,7 @@ function renderHistory(filter) {
       '</td>' +
       '<td class="hist-total">' + fmt(r.grand||0) + '</td>' +
       '<td class="hist-actions">' +
+        (st === 'accepted' ? '<button class="hbtn hbtn-job" data-qid="'+r.id+'" style="background:var(--gold);color:var(--ink)">&#128197; Job</button> ' : '') +
         '<button class="hbtn hbtn-load" data-id="'+r.id+'" style="background:var(--green);color:#fff">Edit</button> ' +
         '<button class="hbtn hbtn-del"  data-id="'+r.id+'">Delete</button>' +
       '</td>' +
@@ -1824,6 +1907,11 @@ function renderHistory(filter) {
         deleteQuote(id);
       }
     });
+  });
+
+  // Wire Book Job buttons
+  body.querySelectorAll('.hbtn-job').forEach(function(btn) {
+    btn.addEventListener('click', function() { openJobFromQuoteId(this.getAttribute('data-qid')); });
   });
 
   // Wire Status dropdowns
@@ -2239,6 +2327,388 @@ function renderDashboard() {
     });
   }
 }
+
+
+// ── JOBS & SCHEDULING ─────────────────────────────────────────────────────────
+// Jobs live in Firestore (users/{uid}/jobs). Booked jobs are written to the
+// "TJS Jobs" Google Calendar using a short-lived OAuth token from Google Sign-In.
+var DEFAULT_JOB_CAL = 'f2a9f529e1462a7385d3d199ad94c066d24dc65c6d1d23b3d5a1a933ae527d8f@group.calendar.google.com';
+var CAL_SCOPE  = 'https://www.googleapis.com/auth/calendar.events';
+var JOB_TZ     = 'Australia/Melbourne';
+var JOB_STATUS = {
+  unscheduled: { label:'Not booked',       color:null, cls:'js-un'  },
+  booked:      { label:'Booked',           color:'10', cls:'js-bk'  }, // Basil (green)
+  done:        { label:'Done, to invoice', color:'9',  cls:'js-dn'  }, // Blueberry (blue)
+  invoiced:    { label:'Invoiced',         color:'8',  cls:'js-inv' }  // Graphite (grey)
+};
+var jobsCache = [];
+var unsubscribeJobs = null;
+var editingJobId = null;
+var showInvoiced = false;
+
+function escH(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+function jobsCol() { return db.collection('users').doc(currentUser.uid).collection('jobs'); }
+function jobCalId() { return lsGet('tjs_job_cal') || DEFAULT_JOB_CAL; }
+
+function startJobsSync() {
+  if (!currentUser) return;
+  if (unsubscribeJobs) unsubscribeJobs();
+  unsubscribeJobs = jobsCol().onSnapshot(function(snap) {
+    jobsCache = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    updateJobsBadge();
+    var p = document.getElementById('p9');
+    if (p && p.style.display === 'block') renderJobs();
+  }, function(err) { console.error('Jobs listener error:', err); });
+}
+function stopJobsSync() {
+  if (unsubscribeJobs) { unsubscribeJobs(); unsubscribeJobs = null; }
+  jobsCache = [];
+}
+function updateJobsBadge() {
+  var b = document.getElementById('jobsBadge');
+  if (!b) return;
+  var n = jobsCache.filter(function(j) { return j.status === 'unscheduled' || j.status === 'done'; }).length;
+  b.textContent = n ? n : '';
+  b.style.display = n ? 'inline' : 'none';
+}
+
+// ── Calendar token (Google access tokens last about an hour)
+function getCalToken() {
+  var raw = lsGet('tjs_cal_tok');
+  if (!raw) return null;
+  try {
+    var t = JSON.parse(raw);
+    if (t.uid === (currentUser && currentUser.uid) && t.exp > Date.now() + 60000) return t.token;
+  } catch (e) {}
+  lsDel('tjs_cal_tok');
+  return null;
+}
+function connectCalendar() {
+  if (!currentUser) return Promise.reject(new Error('Not signed in'));
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope(CAL_SCOPE);
+  provider.setCustomParameters({ login_hint: currentUser.email || '' });
+  return currentUser.reauthenticateWithPopup(provider).then(function(result) {
+    var tok = result.credential && result.credential.accessToken;
+    if (!tok) throw new Error('Google did not return a calendar token.');
+    lsSet('tjs_cal_tok', JSON.stringify({ token: tok, exp: Date.now() + 55 * 60000, uid: currentUser.uid }));
+    updateCalBanner();
+    return syncPendingJobs();
+  });
+}
+function updateCalBanner() {
+  var el = document.getElementById('calBanner');
+  if (!el) return;
+  var ok = !!getCalToken();
+  var pending = jobsCache.filter(function(j) { return j.calPending; }).length;
+  el.className = 'cal-banner ' + (ok ? 'ok' : 'off');
+  document.getElementById('calBannerMsg').textContent = ok
+    ? 'Calendar connected. Booked jobs go straight to TJS Jobs.'
+    : 'Calendar not connected' + (pending ? ' (' + pending + ' job' + (pending > 1 ? 's' : '') + ' waiting to sync)' : '') + '. Connect once per session.';
+  document.getElementById('btnCalConnect').style.display = ok ? 'none' : 'inline-flex';
+}
+
+function calFetch(method, path, body) {
+  var tok = getCalToken();
+  if (!tok) return Promise.reject({ needAuth: true });
+  return fetch('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(jobCalId()) + '/events' + path, {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(res) {
+    if (res.status === 401) { lsDel('tjs_cal_tok'); updateCalBanner(); throw { needAuth: true }; }
+    if (res.status === 404 || res.status === 410) return { gone: true };
+    if (!res.ok) return res.text().then(function(t) { throw new Error('Calendar error ' + res.status + ': ' + t); });
+    return res.status === 204 ? {} : res.json();
+  });
+}
+
+function addMinutes(dateStr, timeStr, mins) {
+  var p = dateStr.split('-').map(Number), t = (timeStr || '08:00').split(':').map(Number);
+  var d = new Date(Date.UTC(p[0], p[1] - 1, p[2], t[0], t[1] + mins));
+  return d.toISOString().slice(0, 19);
+}
+function buildEvent(j) {
+  var title = [j.cname || 'Client', j.jobType || 'Job', j.suburb || ''].filter(Boolean).join(' – ');
+  var lines = [];
+  if (j.qno)   lines.push('Quote #' + j.qno);
+  if (j.cmob)  lines.push('Phone: ' + j.cmob);
+  if (j.cemail) lines.push('Email: ' + j.cemail);
+  if (j.value) lines.push('Value: ' + fmt(Number(j.value)) + ' (quote total)');
+  if (j.scope) lines.push('', 'Scope:', j.scope);
+  if (j.access) lines.push('', 'Access: ' + j.access);
+  if (j.notes) lines.push('', 'Notes: ' + j.notes);
+  lines.push('', 'Status: ' + JOB_STATUS[j.status].label);
+  var ev = {
+    summary: title,
+    location: j.address || '',
+    description: lines.join('\n'),
+    colorId: JOB_STATUS[j.status].color || '10'
+  };
+  if (j.allDay) {
+    var end = new Date(j.date + 'T00:00:00Z'); end.setUTCDate(end.getUTCDate() + Math.max(1, Math.round((j.hours || 8) / 8)));
+    ev.start = { date: j.date };
+    ev.end   = { date: end.toISOString().slice(0, 10) };
+  } else {
+    ev.start = { dateTime: j.date + 'T' + (j.time || '08:00') + ':00', timeZone: JOB_TZ };
+    ev.end   = { dateTime: addMinutes(j.date, j.time, Math.round((j.hours || 2) * 60)), timeZone: JOB_TZ };
+  }
+  return ev;
+}
+
+// Push one job to the calendar (create, update or remove). Returns fields to store.
+function syncJobToCal(j) {
+  var wantEvent = j.status !== 'unscheduled' && j.date;
+  if (!wantEvent) {
+    if (!j.calEventId) return Promise.resolve({ calPending: false });
+    return calFetch('DELETE', '/' + encodeURIComponent(j.calEventId)).then(function() {
+      return { calEventId: null, calLink: null, calPending: false };
+    });
+  }
+  var ev = buildEvent(j);
+  var p = j.calEventId ? calFetch('PATCH', '/' + encodeURIComponent(j.calEventId), ev) : calFetch('POST', '', ev);
+  return p.then(function(r) {
+    if (r && r.gone) return calFetch('POST', '', ev); // event deleted in Calendar, recreate
+    return r;
+  }).then(function(r) {
+    return { calEventId: r.id, calLink: r.htmlLink || null, calPending: false };
+  });
+}
+function saveJobWithSync(id, data) {
+  var ref = id ? jobsCol().doc(id) : jobsCol().doc();
+  data.updatedAt = Date.now();
+  return syncJobToCal(data).then(function(calFields) {
+    return Object.assign(data, calFields);
+  }, function(err) {
+    if (err && err.needAuth) { data.calPending = true; return data; }
+    alert('Saved, but the calendar update failed.\n\n' + (err.message || err));
+    data.calPending = true;
+    return data;
+  }).then(function(final) {
+    return ref.set(final, { merge: true }).then(function() { updateCalBanner(); return ref.id; });
+  });
+}
+function syncPendingJobs() {
+  var pending = jobsCache.filter(function(j) { return j.calPending; });
+  return pending.reduce(function(p, j) {
+    return p.then(function() {
+      var data = Object.assign({}, j); delete data.id;
+      return saveJobWithSync(j.id, data);
+    });
+  }, Promise.resolve());
+}
+
+// ── Create a job from a quote
+function jobFromQuote(r) {
+  var items = r.items || [];
+  var scope = items.map(function(it) { return '• ' + (it.desc || it.description || it.name || '').toString().split('\n')[0]; })
+                   .filter(function(s) { return s.length > 2; }).join('\n');
+  var jobType = (r.services && r.services.length ? r.services[0] : '') ||
+                ((items[0] && (items[0].desc || items[0].description || '')) + '').split(/[\n.,]/)[0].slice(0, 40);
+  var useSite = r.saddr && r.saddr.trim();
+  return {
+    quoteId: r.id || null, qno: r.qno || '',
+    cname: r.cname || '', cmob: r.cmob || '', cemail: r.cemail || '',
+    address: useSite ? [r.saddr, r.ssub, r.spost].filter(Boolean).join(', ') : [r.caddr, r.csub, r.cpost].filter(Boolean).join(', '),
+    suburb: useSite ? (r.ssub || '') : (r.csub || ''),
+    access: r.saccess || '', jobType: jobType, scope: scope,
+    value: r.grand || 0, status: 'unscheduled', date: '', time: '08:00', hours: 4, allDay: false, notes: ''
+  };
+}
+function openJobFromQuoteId(qid) {
+  var r = getHistory().filter(function(x) { return x.id === qid; })[0];
+  if (!r) return;
+  var existing = jobsCache.filter(function(j) { return j.quoteId === qid; })[0];
+  go(IDX_JOBS, true);
+  if (existing) { openJobForm(existing.id); return; }
+  openJobForm(null, jobFromQuote(r));
+}
+
+// ── Form
+var JF = ['jfCname','jfMob','jfEmail','jfAddr','jfSuburb','jfType','jfQno','jfValue','jfDate','jfTime','jfHours','jfScope','jfAccess','jfNotes'];
+function openJobForm(id, preset) {
+  editingJobId = id || null;
+  var j = id ? jobsCache.filter(function(x) { return x.id === id; })[0] : (preset || {});
+  j = j || {};
+  var map = { jfCname:'cname', jfMob:'cmob', jfEmail:'cemail', jfAddr:'address', jfSuburb:'suburb', jfType:'jobType',
+              jfQno:'qno', jfValue:'value', jfDate:'date', jfTime:'time', jfHours:'hours', jfScope:'scope', jfAccess:'access', jfNotes:'notes' };
+  JF.forEach(function(f) {
+    var v = j[map[f]];
+    if (f === 'jfTime' && !v) v = '08:00';
+    if (f === 'jfHours' && !v) v = 4;
+    document.getElementById(f).value = v == null ? '' : v;
+  });
+  document.getElementById('jfAllDay').checked = !!j.allDay;
+  document.getElementById('jfStatus').value = j.status || 'unscheduled';
+  document.getElementById('jfQuoteId').value = j.quoteId || '';
+  document.getElementById('jobFormTitle').textContent = id ? 'Edit Job' : 'New Job';
+  document.getElementById('btnJobDelete').style.display = id ? 'inline-flex' : 'none';
+  document.getElementById('jobForm').style.display = 'block';
+  document.getElementById('jobForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closeJobForm() {
+  editingJobId = null;
+  document.getElementById('jobForm').style.display = 'none';
+}
+function readJobForm() {
+  var g = function(id) { return document.getElementById(id).value.trim(); };
+  var status = document.getElementById('jfStatus').value;
+  var date = g('jfDate');
+  if (date && status === 'unscheduled') status = 'booked';
+  return {
+    quoteId: g('jfQuoteId') || null, qno: g('jfQno'),
+    cname: g('jfCname'), cmob: g('jfMob'), cemail: g('jfEmail'),
+    address: g('jfAddr'), suburb: g('jfSuburb'), jobType: g('jfType'),
+    value: parseFloat(g('jfValue')) || 0,
+    date: date, time: g('jfTime') || '08:00', hours: parseFloat(g('jfHours')) || 2,
+    allDay: document.getElementById('jfAllDay').checked,
+    scope: g('jfScope'), access: g('jfAccess'), notes: g('jfNotes'),
+    status: status
+  };
+}
+function saveJobForm() {
+  var data = readJobForm();
+  if (!data.cname) { alert('Add a client name.'); return; }
+  if (data.status !== 'unscheduled' && !data.date) { alert('Pick a date, or set the status to Not booked.'); return; }
+  var existing = editingJobId ? jobsCache.filter(function(x) { return x.id === editingJobId; })[0] : null;
+  if (existing) { data.calEventId = existing.calEventId || null; data.calLink = existing.calLink || null; data.createdAt = existing.createdAt; }
+  else data.createdAt = Date.now();
+  var btn = document.getElementById('btnJobSave');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  var go2 = getCalToken() || data.status === 'unscheduled' ? Promise.resolve() :
+    connectCalendar().catch(function() { /* user closed popup; save locally and sync later */ });
+  go2.then(function() { return saveJobWithSync(editingJobId, data); })
+     .then(function() { closeJobForm(); })
+     .catch(function(err) { alert('Could not save job: ' + (err.message || err)); })
+     .then(function() { btn.disabled = false; btn.textContent = 'Save Job'; });
+}
+function setJobStatus(id, status) {
+  var j = jobsCache.filter(function(x) { return x.id === id; })[0];
+  if (!j) return;
+  if (status !== 'unscheduled' && !j.date) { openJobForm(id); document.getElementById('jfStatus').value = status; return; }
+  var data = Object.assign({}, j, { status: status }); delete data.id;
+  saveJobWithSync(id, data);
+}
+function deleteJob(id) {
+  var j = jobsCache.filter(function(x) { return x.id === id; })[0];
+  if (!j || !confirm('Delete job for ' + (j.cname || 'client') + '?' + (j.calEventId ? '\nThe calendar event will be removed too.' : ''))) return;
+  var p = j.calEventId ? calFetch('DELETE', '/' + encodeURIComponent(j.calEventId)).catch(function(err) {
+    if (err && err.needAuth) return connectCalendar().then(function() {
+      return calFetch('DELETE', '/' + encodeURIComponent(j.calEventId));
+    }).catch(function() { alert('Job deleted. Remove the calendar event by hand, as Calendar was not connected.'); });
+  }) : Promise.resolve();
+  p.then(function() { return jobsCol().doc(id).delete(); }).then(closeJobForm);
+}
+
+// ── List
+function fmtJobDate(j) {
+  if (!j.date) return '<span style="color:var(--muted)">Not booked</span>';
+  var d = new Date(j.date + 'T00:00:00');
+  var s = d.toLocaleDateString('en-AU', { weekday:'short', day:'numeric', month:'short' });
+  return '<strong>' + s + '</strong><br><span style="font-size:11px;color:var(--muted)">' + (j.allDay ? 'All day' : (j.time || '') + ' · ' + (j.hours || '') + 'h') + '</span>';
+}
+function renderJobs() {
+  updateCalBanner();
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var groups = [
+    { key:'unscheduled', title:'Not booked yet', items: [] },
+    { key:'upcoming',    title:'Booked',         items: [] },
+    { key:'done',        title:'Done, to invoice', items: [] },
+    { key:'invoiced',    title:'Invoiced',       items: [] }
+  ];
+  jobsCache.forEach(function(j) {
+    if (j.status === 'unscheduled') groups[0].items.push(j);
+    else if (j.status === 'booked') groups[1].items.push(j);
+    else if (j.status === 'done') groups[2].items.push(j);
+    else groups[3].items.push(j);
+  });
+  groups.forEach(function(g) { g.items.sort(function(a, b) { return (a.date || '9999').localeCompare(b.date || '9999'); }); });
+  groups[3].items.reverse();
+
+  // Accepted quotes without a job
+  var linked = {};
+  jobsCache.forEach(function(j) { if (j.quoteId) linked[j.quoteId] = true; });
+  var ready = getHistory().filter(function(r) { return r.status === 'accepted' && !linked[r.id]; });
+  var readyEl = document.getElementById('jobsReady');
+  readyEl.innerHTML = ready.length ? '<div class="jobs-ready"><strong>' + ready.length + ' accepted quote' + (ready.length > 1 ? 's' : '') + ' to book:</strong> ' +
+    ready.map(function(r) { return '<button class="hbtn hbtn-load js-fromq" data-qid="' + escH(r.id) + '">#' + escH(r.qno) + ' ' + escH(r.cname) + '</button>'; }).join(' ') + '</div>' : '';
+  readyEl.querySelectorAll('.js-fromq').forEach(function(b) {
+    b.addEventListener('click', function() { openJobFromQuoteId(this.getAttribute('data-qid')); });
+  });
+
+  var html = '';
+  groups.forEach(function(g) {
+    if (g.key === 'invoiced' && !showInvoiced) {
+      if (g.items.length) html += '<button class="hbtn hbtn-del" id="btnShowInv" style="margin-top:6px">Show ' + g.items.length + ' invoiced job' + (g.items.length > 1 ? 's' : '') + '</button>';
+      return;
+    }
+    if (!g.items.length) return;
+    html += '<div class="jobs-group-title">' + g.title + ' <span class="badge">' + g.items.length + '</span></div>';
+    html += '<table class="hist-table"><thead><tr><th>When</th><th>Client &amp; site</th><th>Job</th><th style="text-align:right">Value</th><th>Status</th><th style="text-align:right"></th></tr></thead><tbody>';
+    g.items.forEach(function(j) {
+      var late = j.status === 'booked' && j.date && j.date < todayStr;
+      var sel = Object.keys(JOB_STATUS).map(function(s) {
+        return '<option value="' + s + '"' + (j.status === s ? ' selected' : '') + '>' + JOB_STATUS[s].label + '</option>';
+      }).join('');
+      html += '<tr' + (late ? ' class="js-late"' : '') + '>' +
+        '<td style="white-space:nowrap">' + fmtJobDate(j) + (late ? '<br><span class="js-flag">Past date, mark done?</span>' : '') + '</td>' +
+        '<td>' + escH(j.cname) + (j.cmob ? ' <a href="tel:' + escH(j.cmob.replace(/\s/g, '')) + '" class="js-tel">' + escH(j.cmob) + '</a>' : '') +
+          '<br><a target="_blank" rel="noopener" style="font-size:12px;color:var(--muted)" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.address || '') + '">' + escH(j.address || '—') + '</a></td>' +
+        '<td style="font-size:12.5px">' + escH(j.jobType || '') + (j.qno ? '<br><span style="color:var(--muted)">#' + escH(j.qno) + '</span>' : '') + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' + (j.value ? fmt(Number(j.value)) : '') + '</td>' +
+        '<td><select class="js-status ' + JOB_STATUS[j.status].cls + '" data-id="' + escH(j.id) + '">' + sel + '</select>' +
+          (j.calPending ? '<br><span class="js-flag">Not in calendar yet</span>' : '') + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+          (j.calLink ? '<a class="hbtn hbtn-del" target="_blank" rel="noopener" href="' + escH(j.calLink) + '" title="Open in Google Calendar">📅</a> ' : '') +
+          '<button class="hbtn hbtn-load js-edit" data-id="' + escH(j.id) + '">' + (j.status === 'unscheduled' ? 'Book' : 'Edit') + '</button></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  });
+  if (!jobsCache.length) html = '<div style="text-align:center;color:var(--muted);padding:30px 0;font-size:14px">No jobs yet. Book one from an accepted quote, or add a job directly.</div>';
+  var list = document.getElementById('jobsList');
+  list.innerHTML = html;
+  list.querySelectorAll('.js-edit').forEach(function(b) { b.addEventListener('click', function() { openJobForm(this.getAttribute('data-id')); }); });
+  list.querySelectorAll('.js-status').forEach(function(s) { s.addEventListener('change', function() { setJobStatus(this.getAttribute('data-id'), this.value); }); });
+  var si = document.getElementById('btnShowInv');
+  if (si) si.addEventListener('click', function() { showInvoiced = true; renderJobs(); });
+
+  // Summary strip
+  var toInvoice = groups[2].items.reduce(function(a, j) { return a + (Number(j.value) || 0); }, 0);
+  var week = new Date(); week.setDate(week.getDate() + 7);
+  var weekStr = week.toISOString().slice(0, 10);
+  var thisWeek = groups[1].items.filter(function(j) { return j.date >= todayStr && j.date <= weekStr; }).length;
+  document.getElementById('jobsSummary').innerHTML =
+    '<div class="js-stat"><div class="js-n">' + thisWeek + '</div><div class="js-l">Booked next 7 days</div></div>' +
+    '<div class="js-stat"><div class="js-n">' + groups[0].items.length + '</div><div class="js-l">Waiting to book</div></div>' +
+    '<div class="js-stat"><div class="js-n">' + fmt(toInvoice) + '</div><div class="js-l">Done, not invoiced</div></div>';
+}
+
+function initJobs() {
+  document.getElementById('nb9').addEventListener('click', function() { go(IDX_JOBS); });
+  document.getElementById('btnJobNew').addEventListener('click', function() { openJobForm(null, { status:'unscheduled', time:'08:00', hours:4 }); });
+  document.getElementById('btnJobSave').addEventListener('click', saveJobForm);
+  document.getElementById('btnJobCancel').addEventListener('click', closeJobForm);
+  document.getElementById('btnJobDelete').addEventListener('click', function() { if (editingJobId) deleteJob(editingJobId); });
+  document.getElementById('btnCalConnect').addEventListener('click', function() {
+    connectCalendar().then(renderJobs).catch(function(err) {
+      if (err && err.code === 'auth/popup-closed-by-user') return;
+      alert('Could not connect Google Calendar.\n\n' + (err.message || err));
+    });
+  });
+  document.getElementById('jfAllDay').addEventListener('change', function() {
+    document.getElementById('jfTime').disabled = this.checked;
+  });
+}
+document.addEventListener('DOMContentLoaded', initJobs);
 
 })(); // end IIFE
 </script>
