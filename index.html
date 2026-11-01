@@ -195,6 +195,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 #btnSignOut:hover{color:rgba(255,255,255,.7)}
 
 /* Jobs */
+.main.wide{max-width:1180px}
+.view-tog{display:inline-flex;background:var(--cream);border-radius:8px;padding:3px;gap:2px}
+.view-tog button{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border:none;background:none;padding:6px 14px;border-radius:6px;cursor:pointer;color:var(--muted)}
+.view-tog button.on{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.wk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.wk-nav{display:flex;align-items:center;gap:6px}
+.wk-nav button{font-family:'DM Sans',sans-serif;border:1.5px solid var(--stone);background:#fff;border-radius:7px;padding:5px 11px;cursor:pointer;font-size:13px;color:var(--navy)}
+.wk-nav button:hover{border-color:var(--navy)}
+.wk-title{font-family:'DM Serif Display',serif;font-size:18px;color:var(--navy);min-width:190px;text-align:center}
+.tray{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fffbea;border:1.5px dashed #e6c766;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#8a6200}
+.tray-chip{background:#fff;border:1.5px solid #e6c766;border-radius:6px;padding:5px 9px;font-weight:600;color:var(--ink);cursor:grab;user-select:none}
+.tray-chip:active{cursor:grabbing}
+.wk-scroll{overflow-x:auto;border:1.5px solid var(--stone);border-radius:10px}
+.wk{display:grid;grid-template-columns:46px repeat(7,minmax(110px,1fr));min-width:820px;background:#fff}
+.wk-dh{position:sticky;top:0;background:#fff;border-bottom:1.5px solid var(--stone);padding:8px 6px;text-align:center;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;z-index:2}
+.wk-dh b{display:block;font-family:'DM Serif Display',serif;font-size:20px;color:var(--ink);letter-spacing:0;text-transform:none;font-weight:400}
+.wk-dh.today b{background:var(--navy);color:#fff;border-radius:50%;width:32px;height:32px;line-height:32px;margin:2px auto 0}
+.wk-ad{border-bottom:1.5px solid var(--stone);padding:3px;min-height:26px;border-left:1px solid var(--stone)}
+.wk-times{position:relative}
+.wk-t{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-6px)}
+.wk-col{position:relative;border-left:1px solid var(--stone);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,var(--stone) 43px,var(--stone) 44px)}
+.wk-col.today{background-color:#fafcff}
+.wk-col.drop{background-color:#eef5ff}
+.wk-job{position:absolute;left:3px;right:3px;border-radius:6px;padding:4px 6px;font-size:11.5px;line-height:1.3;overflow:hidden;cursor:pointer;border-left:4px solid;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:box-shadow .15s}
+.wk-job:hover{box-shadow:0 3px 10px rgba(0,0,0,.15);z-index:3}
+.wk-job b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-weight:600;overflow:hidden}
+.wk-job.ad b{display:block;white-space:nowrap;text-overflow:ellipsis}
+.wk-job span{color:rgba(0,0,0,.55);font-size:10.5px}
+.wk-job.ad{position:static;margin-bottom:2px;padding:2px 6px}
+.st-booked{background:#e6f4ea;border-color:#2e7d32}.st-done{background:#e3f0fc;border-color:#1565c0}
+.st-invoiced{background:#eceff1;border-color:#78909c;opacity:.8}.st-unscheduled{background:#f5f5f5;border-color:#999}
+.wk-now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:4}
+.wk-now:before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+.wk-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.wk-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border-left:3px solid}
+
 .cal-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 16px;border-radius:8px;font-size:13px;margin-bottom:18px}
 .cal-banner.ok{background:#e8f5e9;color:#2e7d32}
 .cal-banner.off{background:#fffbea;color:#8a6200;border:1.5px solid #f0d98a}
@@ -637,8 +673,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
         </div>
       </div>
 
-      <div class="sh" style="justify-content:space-between">Jobs <button class="btn btn-g" id="btnJobNew" style="font-size:12px;padding:7px 14px">+ New Job</button></div>
-      <div id="jobsList"></div>
+      <div class="sh" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:12px">Jobs
+          <span class="view-tog"><button id="vWeek" class="on">Week</button><button id="vList">List</button></span></span>
+        <button class="btn btn-g" id="btnJobNew" style="font-size:12px;padding:7px 14px">+ New Job</button></div>
+      <div id="jobsWeek">
+        <div class="wk-head">
+          <div class="wk-nav"><button id="wkPrev">&#8249;</button><button id="wkToday">Today</button><button id="wkNext">&#8250;</button></div>
+          <div class="wk-title" id="wkTitle"></div>
+          <div style="width:120px"></div>
+        </div>
+        <div id="wkTray"></div>
+        <div class="wk-scroll"><div class="wk" id="wkGrid"></div></div>
+        <div class="wk-legend">
+          <span><i class="st-booked"></i>Booked</span><span><i class="st-done"></i>Done, to invoice</span><span><i class="st-invoiced"></i>Invoiced</span>
+          <span>Drag a job to move it. Click to edit.</span>
+        </div>
+      </div>
+      <div id="jobsList" style="display:none"></div>
     </div>
 
   </main>
@@ -761,6 +813,7 @@ function go(idx, skipDraft) {
   if (idx === IDX_HISTORY) renderHistory();
   if (idx === IDX_DASH)    renderDashboard();
   if (idx === IDX_JOBS)    renderJobs();
+  document.querySelector('.main').classList.toggle('wide', idx === IDX_JOBS);
   if (idx === IDX_WELCOME) updateWelcomeCount();
   window.scrollTo(0, 0);
 }
@@ -2759,6 +2812,7 @@ function renderJobs() {
   list.querySelectorAll('.js-status').forEach(function(s) { s.addEventListener('change', function() { setJobStatus(this.getAttribute('data-id'), this.value); }); });
   var si = document.getElementById('btnShowInv');
   if (si) si.addEventListener('click', function() { showInvoiced = true; renderJobs(); });
+  setJobsView(jobsView);
 
   // Summary strip
   var toInvoice = groups[2].items.reduce(function(a, j) { return a + (Number(j.value) || 0); }, 0);
@@ -2771,8 +2825,145 @@ function renderJobs() {
     '<div class="js-stat"><div class="js-n">' + fmt(toInvoice) + '</div><div class="js-l">Done, not invoiced</div></div>';
 }
 
+
+// ── Week planner
+var wkStart = mondayOf(new Date());
+var jobsView = lsGet('tjs_jobs_view') || 'week';
+var WK_H0 = 7, WK_H1 = 18, WK_ROW = 44;
+function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function hm(t) { var p = (t || '08:00').split(':'); return (+p[0]) + (+p[1]) / 60; }
+function fmtHM(h) { var hh = Math.floor(h), mm = Math.round((h - hh) * 60); var ap = hh >= 12 ? 'pm' : 'am'; var h12 = hh % 12 || 12; return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + ap; }
+
+function setJobsView(v) {
+  jobsView = v; lsSet('tjs_jobs_view', v);
+  document.getElementById('vWeek').className = v === 'week' ? 'on' : '';
+  document.getElementById('vList').className = v === 'list' ? 'on' : '';
+  document.getElementById('jobsWeek').style.display = v === 'week' ? 'block' : 'none';
+  document.getElementById('jobsList').style.display = v === 'list' ? 'block' : 'none';
+  if (v === 'week') renderWeek();
+}
+
+function renderWeek() {
+  var days = [];
+  for (var i = 0; i < 7; i++) { var d = new Date(wkStart); d.setDate(d.getDate() + i); days.push(d); }
+  var todayStr = ymd(new Date());
+  var endD = days[6];
+  var sameMonth = days[0].getMonth() === endD.getMonth();
+  document.getElementById('wkTitle').textContent =
+    days[0].getDate() + (sameMonth ? '' : ' ' + days[0].toLocaleDateString('en-AU', { month: 'short' })) + ' – ' +
+    endD.getDate() + ' ' + endD.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
+
+  var weekJobs = jobsCache.filter(function(j) { return j.date && j.status !== 'unscheduled' && j.date >= ymd(days[0]) && j.date <= ymd(endD); });
+  // widen the hours shown if a job falls outside 7am to 6pm
+  var h0 = WK_H0, h1 = WK_H1;
+  weekJobs.forEach(function(j) { if (!j.allDay) { h0 = Math.min(h0, Math.floor(hm(j.time))); h1 = Math.max(h1, Math.ceil(hm(j.time) + (j.hours || 1))); } });
+  h1 = Math.min(h1, 24);
+  var height = (h1 - h0) * WK_ROW;
+
+  // tray of jobs waiting to be booked
+  var waiting = jobsCache.filter(function(j) { return j.status === 'unscheduled'; });
+  document.getElementById('wkTray').innerHTML = waiting.length ? '<div class="tray"><strong>Drag onto a day to book:</strong>' +
+    waiting.map(function(j) { return '<span class="tray-chip" draggable="true" data-id="' + escH(j.id) + '">' + escH(j.cname) + (j.suburb ? ' · ' + escH(j.suburb) : '') + '</span>'; }).join('') + '</div>' : '';
+
+  var g = '<div class="wk-dh" style="border-left:none"></div>';
+  days.forEach(function(d) {
+    g += '<div class="wk-dh' + (ymd(d) === todayStr ? ' today' : '') + '">' + d.toLocaleDateString('en-AU', { weekday: 'short' }) + '<b>' + d.getDate() + '</b></div>';
+  });
+  g += '<div class="wk-ad" style="border-left:none;font-size:9px;color:var(--muted);text-align:right;padding-top:7px">all day</div>';
+  days.forEach(function(d) {
+    var ds = ymd(d);
+    g += '<div class="wk-ad">' + weekJobs.filter(function(j) { return j.allDay && j.date === ds; }).map(function(j) {
+      return '<div class="wk-job ad st-' + j.status + '" draggable="true" data-id="' + escH(j.id) + '"><b>' + escH(j.cname) + '</b></div>';
+    }).join('') + '</div>';
+  });
+  g += '<div class="wk-times" style="height:' + height + 'px">';
+  for (var h = h0 + 1; h < h1; h++) g += '<div class="wk-t" style="top:' + ((h - h0) * WK_ROW) + 'px">' + fmtHM(h) + '</div>';
+  g += '</div>';
+  days.forEach(function(d) {
+    var ds = ymd(d);
+    g += '<div class="wk-col' + (ds === todayStr ? ' today' : '') + '" data-date="' + ds + '" style="height:' + height + 'px">';
+    weekJobs.filter(function(j) { return !j.allDay && j.date === ds; }).forEach(function(j) {
+      var st = hm(j.time), len = Math.max(0.5, j.hours || 1);
+      var top = (st - h0) * WK_ROW, ht = Math.max(22, len * WK_ROW - 3);
+      g += '<div class="wk-job st-' + j.status + '" draggable="true" data-id="' + escH(j.id) + '" style="top:' + top + 'px;height:' + ht + 'px" title="' + escH(j.cname + (j.address ? '\n' + j.address : '')) + '">' +
+        '<b>' + escH(j.cname) + '</b><span>' + fmtHM(st) + '–' + fmtHM(st + len) + (j.suburb ? ' · ' + escH(j.suburb) : '') + '</span>' +
+        (ht > 50 && j.jobType ? '<br><span>' + escH(j.jobType) + '</span>' : '') + '</div>';
+    });
+    if (ds === todayStr) {
+      var now = new Date(), nh = now.getHours() + now.getMinutes() / 60;
+      if (nh > h0 && nh < h1) g += '<div class="wk-now" style="top:' + ((nh - h0) * WK_ROW) + 'px"></div>';
+    }
+    g += '</div>';
+  });
+  var grid = document.getElementById('wkGrid');
+  grid.innerHTML = g;
+  grid.dataset.h0 = h0;
+
+  // click to edit
+  grid.querySelectorAll('.wk-job').forEach(function(el) {
+    el.addEventListener('click', function() { openJobForm(this.getAttribute('data-id')); });
+  });
+  wireDrag(document.getElementById('wkTray').querySelectorAll('.tray-chip'));
+  wireDrag(grid.querySelectorAll('.wk-job'));
+  grid.querySelectorAll('.wk-col').forEach(function(col) {
+    col.addEventListener('dragover', function(e) { e.preventDefault(); col.classList.add('drop'); });
+    col.addEventListener('dragleave', function() { col.classList.remove('drop'); });
+    col.addEventListener('drop', function(e) {
+      e.preventDefault(); col.classList.remove('drop');
+      var id = e.dataTransfer.getData('text/plain'); if (!id) return;
+      var rect = col.getBoundingClientRect();
+      var offs = parseFloat(e.dataTransfer.getData('application/x-offset') || '0');
+      var hr = h0 + Math.max(0, (e.clientY - rect.top - offs)) / WK_ROW;
+      hr = Math.round(hr * 2) / 2; // snap to half hours
+      moveJob(id, col.getAttribute('data-date'), hr, false);
+    });
+  });
+  grid.querySelectorAll('.wk-ad').forEach(function(cell, idx) {
+    if (idx === 0) return;
+    var ds = ymd(days[idx - 1]);
+    cell.addEventListener('dragover', function(e) { e.preventDefault(); cell.style.background = '#eef5ff'; });
+    cell.addEventListener('dragleave', function() { cell.style.background = ''; });
+    cell.addEventListener('drop', function(e) {
+      e.preventDefault(); cell.style.background = '';
+      var id = e.dataTransfer.getData('text/plain'); if (id) moveJob(id, ds, 8, true);
+    });
+  });
+}
+function wireDrag(nodes) {
+  nodes.forEach(function(el) {
+    el.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', el.getAttribute('data-id'));
+      var r = el.getBoundingClientRect();
+      e.dataTransfer.setData('application/x-offset', el.classList.contains('tray-chip') || el.classList.contains('ad') ? '0' : String(e.clientY - r.top));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+  });
+}
+function moveJob(id, date, hour, allDay) {
+  var j = jobsCache.filter(function(x) { return x.id === id; })[0];
+  if (!j) return;
+  var hh = Math.floor(hour), mm = Math.round((hour - hh) * 60);
+  var data = Object.assign({}, j, {
+    date: date, allDay: allDay,
+    time: String(Math.min(hh, 23)).padStart(2, '0') + ':' + String(mm).padStart(2, '0'),
+    status: j.status === 'unscheduled' ? 'booked' : j.status
+  });
+  if (!data.hours) data.hours = 2;
+  delete data.id;
+  // show the move straight away, then save and sync
+  Object.assign(j, data); renderWeek();
+  var p = getCalToken() ? Promise.resolve() : connectCalendar().catch(function() {});
+  p.then(function() { return saveJobWithSync(id, data); });
+}
+
 function initJobs() {
   document.getElementById('nb9').addEventListener('click', function() { go(IDX_JOBS); });
+  document.getElementById('vWeek').addEventListener('click', function() { setJobsView('week'); });
+  document.getElementById('vList').addEventListener('click', function() { setJobsView('list'); });
+  document.getElementById('wkPrev').addEventListener('click', function() { wkStart.setDate(wkStart.getDate() - 7); renderWeek(); });
+  document.getElementById('wkNext').addEventListener('click', function() { wkStart.setDate(wkStart.getDate() + 7); renderWeek(); });
+  document.getElementById('wkToday').addEventListener('click', function() { wkStart = mondayOf(new Date()); renderWeek(); });
   document.getElementById('btnJobNew').addEventListener('click', function() { openJobForm(null, { status:'unscheduled', time:'08:00', hours:4 }); });
   document.getElementById('btnJobSave').addEventListener('click', saveJobForm);
   document.getElementById('btnJobCancel').addEventListener('click', closeJobForm);
