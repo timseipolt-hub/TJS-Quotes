@@ -23,7 +23,14 @@ const opts = { region: REGION, secrets: [CLIENT_ID, CLIENT_SECRET] };
 
 // Tokens sit outside users/{uid} so the web app can never read them.
 const tokenDoc = uid => db.collection('qboTokens').doc(uid);
-const redirectUri = () => `https://${REGION}-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/qboCallback`;
+function projectId() {
+  if (process.env.GCLOUD_PROJECT) return process.env.GCLOUD_PROJECT;
+  try { return JSON.parse(process.env.FIREBASE_CONFIG).projectId; } catch (e) { return 'tjs---quote-template'; }
+}
+const redirectUri = () => `https://${REGION}-${projectId()}.cloudfunctions.net/qboCallback`;
+// Secrets pasted in PowerShell can carry a trailing line break; strip it
+const clientId = () => String(CLIENT_ID.value() || '').trim();
+const clientSecret = () => String(CLIENT_SECRET.value() || '').trim();
 
 async function http(method, url, { headers, body } = {}) {
   const res = await fetch(url, { method, headers, body });
@@ -34,7 +41,7 @@ async function http(method, url, { headers, body } = {}) {
 }
 
 function basicAuth() {
-  return 'Basic ' + Buffer.from(`${CLIENT_ID.value()}:${CLIENT_SECRET.value()}`).toString('base64');
+  return 'Basic ' + Buffer.from(`${clientId()}:${clientSecret()}`).toString('base64');
 }
 
 async function tokenRequest(params) {
@@ -85,7 +92,7 @@ exports.qboAuthStart = onCall(opts, async req => {
   const state = crypto.randomBytes(24).toString('hex');
   await db.collection('qboStates').doc(state).set({ uid, createdAt: Date.now() });
   const url = `${qbo.OAUTH_AUTHORIZE}?` + new URLSearchParams({
-    client_id: CLIENT_ID.value(), response_type: 'code', scope: qbo.SCOPE,
+    client_id: clientId(), response_type: 'code', scope: qbo.SCOPE,
     redirect_uri: redirectUri(), state
   }).toString();
   return { url };
