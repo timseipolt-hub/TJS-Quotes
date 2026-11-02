@@ -231,7 +231,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .wk-job span{color:rgba(0,0,0,.55);font-size:10.5px}
 .wk-job.ad{position:static;margin-bottom:2px;padding:2px 6px}
 .st-booked{background:#e6f4ea;border-color:#2e7d32}.st-done{background:#e3f0fc;border-color:#1565c0}
-.st-invoiced{background:#eceff1;border-color:#78909c;opacity:.8}.st-unscheduled{background:#f5f5f5;border-color:#999}
+.st-invoiced{background:#eceff1;border-color:#78909c;opacity:.8}.st-tentative{background:#fff8dc;border-color:#e0a800;border-style:dashed}.st-unscheduled{background:#f5f5f5;border-color:#999}
 .wk-now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:4}
 .wk-now:before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
 .wk-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
@@ -247,7 +247,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .jobs-ready{background:#f0f5fc;border:1.5px solid var(--lblue);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:2.2}
 .jobs-group-title{font-family:'DM Serif Display',serif;font-size:15px;color:var(--navy);margin:22px 0 8px;display:flex;align-items:center;gap:8px}
 .js-status{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:4px 6px;border-radius:6px;border:1.5px solid var(--stone);cursor:pointer}
-.js-un{background:#f5f5f5;color:#555}.js-bk{background:#e8f5e9;color:#2e7d32}.js-dn{background:#e3f2fd;color:#1565c0}.js-inv{background:#eceff1;color:#546e7a}
+.js-un{background:#f5f5f5;color:#555}.js-tn{background:#fff8dc;color:#8a6200}.js-bk{background:#e8f5e9;color:#2e7d32}.js-dn{background:#e3f2fd;color:#1565c0}.js-inv{background:#eceff1;color:#546e7a}
 .js-flag{font-size:10.5px;color:#b07c00;font-weight:600}
 .js-late td{background:#fffdf3}
 .js-tel{font-size:11px;color:var(--navy);text-decoration:none;margin-left:4px}
@@ -663,6 +663,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
           <div class="field"><label>Status</label>
             <select id="jfStatus">
               <option value="unscheduled">Not booked</option>
+              <option value="tentative">Not confirmed</option>
               <option value="booked">Booked</option>
               <option value="done">Done, to invoice</option>
               <option value="invoiced">Invoiced</option>
@@ -696,7 +697,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
         <div id="wkTray"></div>
         <div class="wk-scroll"><div class="wk" id="wkGrid"></div></div>
         <div class="wk-legend">
-          <span><i class="st-booked"></i>Booked</span><span><i class="st-done"></i>Done, to invoice</span><span><i class="st-invoiced"></i>Invoiced</span>
+          <span><i class="st-tentative"></i>Not confirmed</span><span><i class="st-booked"></i>Booked</span><span><i class="st-done"></i>Done, to invoice</span><span><i class="st-invoiced"></i>Invoiced</span>
           <span>Drag a job to move it. Click to edit.</span>
         </div>
       </div>
@@ -2428,6 +2429,7 @@ var CAL_SCOPE  = 'https://www.googleapis.com/auth/calendar.events';
 var JOB_TZ     = 'Australia/Melbourne';
 var JOB_STATUS = {
   unscheduled: { label:'Not booked',       color:null, cls:'js-un'  },
+  tentative:   { label:'Not confirmed',    color:'5',  cls:'js-tn'  }, // Banana (yellow)
   booked:      { label:'Booked',           color:'10', cls:'js-bk'  }, // Basil (green)
   done:        { label:'Done, to invoice', color:'9',  cls:'js-dn'  }, // Blueberry (blue)
   invoiced:    { label:'Invoiced',         color:'8',  cls:'js-inv' }  // Graphite (grey)
@@ -2466,7 +2468,7 @@ function stopJobsSync() {
 function updateJobsBadge() {
   var b = document.getElementById('jobsBadge');
   if (!b) return;
-  var n = jobsCache.filter(function(j) { return j.status === 'unscheduled' || j.status === 'done'; }).length;
+  var n = jobsCache.filter(function(j) { return j.status === 'unscheduled' || j.status === 'tentative' || j.status === 'done'; }).length;
   b.textContent = n ? n : '';
   b.style.display = n ? 'inline' : 'none';
 }
@@ -2609,6 +2611,7 @@ function syncPendingJobs() {
 
 // ── Pull jobs added directly in Google Calendar (and pick up moved times)
 var lastPull = 0;
+var COLOUR_STATUS = { '5': 'tentative', '10': 'booked', '9': 'done', '8': 'invoiced' };
 function localParts(dt) {
   // dt like 2026-11-04T09:00:00+11:00 -> date/time as written in that zone
   return { date: dt.slice(0, 10), time: dt.slice(11, 16) };
@@ -2645,10 +2648,14 @@ function pullFromCalendar(force) {
       if (ev.status === 'cancelled' || !ev.start) return;
       if (ev.recurringEventId || ignored[ev.id]) return; // skip repeating blocks (eg regular shifts)
       var f = eventToFields(ev);
+      var colourStatus = COLOUR_STATUS[ev.colorId];
       var j = byEvent[ev.id];
       if (j) {
+        // Colour changed in Google Calendar more recently than the app: follow it
+        var evUpdated = ev.updated ? Date.parse(ev.updated) : 0;
+        if (colourStatus && colourStatus !== j.status && evUpdated > (j.updatedAt || 0) + 5000) f.status = colourStatus;
         // Event moved or resized in Calendar: bring the job into line
-        if (j.date !== f.date || j.time !== f.time || j.hours !== f.hours || !!j.allDay !== f.allDay) {
+        if (f.status || j.date !== f.date || j.time !== f.time || j.hours !== f.hours || !!j.allDay !== f.allDay) {
           batch.set(jobsCol().doc(j.id), Object.assign(f, { updatedAt: Date.now() }), { merge: true }); n++;
         }
         return;
@@ -2659,7 +2666,7 @@ function pullFromCalendar(force) {
         cname: ev.summary || 'Calendar job', cmob: '', cemail: '',
         address: loc, suburb: (loc.split(',')[1] || '').trim(),
         jobType: '', scope: ev.description || '', access: '', notes: '', value: 0,
-        status: f.date < todayStr ? 'done' : 'booked',
+        status: colourStatus || (f.date < todayStr ? 'done' : 'booked'),
         calEventId: ev.id, calLink: ev.htmlLink || null, calPending: false,
         createdAt: Date.now(), updatedAt: Date.now()
       }, f)); n++;
@@ -2820,10 +2827,12 @@ function renderJobs() {
     { key:'unscheduled', title:'Not booked yet', items: [] },
     { key:'upcoming',    title:'Booked',         items: [] },
     { key:'done',        title:'Done, to invoice', items: [] },
-    { key:'invoiced',    title:'Invoiced',       items: [] }
+    { key:'invoiced',    title:'Invoiced',       items: [] },
+    { key:'tentative',   title:'Not confirmed with client', items: [] }
   ];
   jobsCache.forEach(function(j) {
     if (j.status === 'unscheduled') groups[0].items.push(j);
+    else if (j.status === 'tentative') groups[4].items.push(j);
     else if (j.status === 'booked') groups[1].items.push(j);
     else if (j.status === 'done') groups[2].items.push(j);
     else groups[3].items.push(j);
@@ -2842,8 +2851,9 @@ function renderJobs() {
     b.addEventListener('click', function() { openJobFromQuoteId(this.getAttribute('data-qid')); });
   });
 
+  var listOrder = [groups[0], groups[4], groups[1], groups[2], groups[3]];
   var html = '';
-  groups.forEach(function(g) {
+  listOrder.forEach(function(g) {
     if (g.key === 'invoiced' && !showInvoiced) {
       if (g.items.length) html += '<button class="hbtn hbtn-del" id="btnShowInv" style="margin-top:6px">Show ' + g.items.length + ' invoiced job' + (g.items.length > 1 ? 's' : '') + '</button>';
       return;
@@ -2852,7 +2862,7 @@ function renderJobs() {
     html += '<div class="jobs-group-title">' + g.title + ' <span class="badge">' + g.items.length + '</span></div>';
     html += '<table class="hist-table"><thead><tr><th>When</th><th>Client &amp; site</th><th>Job</th><th style="text-align:right">Value</th><th>Status</th><th style="text-align:right"></th></tr></thead><tbody>';
     g.items.forEach(function(j) {
-      var late = j.status === 'booked' && j.date && j.date < todayStr;
+      var late = (j.status === 'booked' || j.status === 'tentative') && j.date && j.date < todayStr;
       var sel = Object.keys(JOB_STATUS).map(function(s) {
         return '<option value="' + s + '"' + (j.status === s ? ' selected' : '') + '>' + JOB_STATUS[s].label + '</option>';
       }).join('');
@@ -2888,7 +2898,7 @@ function renderJobs() {
   var thisWeek = groups[1].items.filter(function(j) { return j.date >= todayStr && j.date <= weekStr; }).length;
   document.getElementById('jobsSummary').innerHTML =
     '<div class="js-stat"><div class="js-n">' + thisWeek + '</div><div class="js-l">Booked next 7 days</div></div>' +
-    '<div class="js-stat"><div class="js-n">' + groups[0].items.length + '</div><div class="js-l">Waiting to book</div></div>' +
+    '<div class="js-stat"><div class="js-n">' + (groups[4].items.length + groups[0].items.length) + '</div><div class="js-l">To confirm or book</div></div>' +
     '<div class="js-stat"><div class="js-n">' + (hrsToInvoice ? hrsToInvoice + ' h' + (toInvoice ? ' · ' + fmt(toInvoice) : '') : fmt(toInvoice)) + '</div><div class="js-l">Done, not invoiced</div></div>';
 }
 
