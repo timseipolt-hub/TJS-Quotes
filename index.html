@@ -247,7 +247,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .jobs-ready{background:#f0f5fc;border:1.5px solid var(--lblue);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:2.2}
 .jobs-group-title{font-family:'DM Serif Display',serif;font-size:15px;color:var(--navy);margin:22px 0 8px;display:flex;align-items:center;gap:8px}
 .js-status{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:4px 6px;border-radius:6px;border:1.5px solid var(--stone);cursor:pointer}
-.js-un{background:#f5f5f5;color:#555}.js-tn{background:#fff8dc;color:#8a6200}.js-bk{background:#e8f5e9;color:#2e7d32}.js-dn{background:#e3f2fd;color:#1565c0}.js-inv{background:#eceff1;color:#546e7a}
+.js-un{background:#f5f5f5;color:#555}.js-tn{background:#ede7f6;color:#5e35b1}.js-bk{background:#e8f5e9;color:#2e7d32}.js-dn{background:#e3f2fd;color:#1565c0}.js-inv{background:#eceff1;color:#546e7a}
 .js-flag{font-size:10.5px;color:#b07c00;font-weight:600}
 .js-late td{background:#fffdf3}
 .js-tel{font-size:11px;color:var(--navy);text-decoration:none;margin-left:4px}
@@ -2429,7 +2429,7 @@ var CAL_SCOPE  = 'https://www.googleapis.com/auth/calendar.events';
 var JOB_TZ     = 'Australia/Melbourne';
 var JOB_STATUS = {
   unscheduled: { label:'Not booked',       color:null, cls:'js-un'  },
-  tentative:   { label:'Not confirmed',    color:'5',  cls:'js-tn'  }, // Banana (yellow)
+  tentative:   { label:'Not confirmed',    color:'1',  cls:'js-tn'  }, // Lavender
   booked:      { label:'Booked',           color:'10', cls:'js-bk'  }, // Basil (green)
   done:        { label:'Done, to invoice', color:'9',  cls:'js-dn'  }, // Blueberry (blue)
   invoiced:    { label:'Invoiced',         color:'8',  cls:'js-inv' }  // Graphite (grey)
@@ -2611,7 +2611,7 @@ function syncPendingJobs() {
 
 // ── Pull jobs added directly in Google Calendar (and pick up moved times)
 var lastPull = 0;
-var COLOUR_STATUS = { '5': 'tentative', '10': 'booked', '9': 'done', '8': 'invoiced' };
+var COLOUR_STATUS = { '1': 'tentative', '5': 'tentative', '10': 'booked', '9': 'done', '8': 'invoiced' };
 function localParts(dt) {
   // dt like 2026-11-04T09:00:00+11:00 -> date/time as written in that zone
   return { date: dt.slice(0, 10), time: dt.slice(11, 16) };
@@ -2666,7 +2666,7 @@ function pullFromCalendar(force) {
         cname: ev.summary || 'Calendar job', cmob: '', cemail: '',
         address: loc, suburb: (loc.split(',')[1] || '').trim(),
         jobType: '', scope: ev.description || '', access: '', notes: '', value: 0,
-        status: colourStatus || (f.date < todayStr ? 'done' : 'booked'),
+        status: colourStatus || (f.date < todayStr ? 'done' : 'tentative'),
         calEventId: ev.id, calLink: ev.htmlLink || null, calPending: false,
         createdAt: Date.now(), updatedAt: Date.now()
       }, f)); n++;
