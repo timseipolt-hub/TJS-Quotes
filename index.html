@@ -195,6 +195,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 #btnSignOut:hover{color:rgba(255,255,255,.7)}
 
 /* Jobs */
+#hoursModal .field input{min-width:0;width:100%}
+#hoursModal .g3 > .field{min-width:0}
 .main.wide{max-width:1180px}
 .view-tog{display:inline-flex;background:var(--cream);border-radius:8px;padding:3px;gap:2px}
 .view-tog button{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border:none;background:none;padding:6px 14px;border-radius:6px;cursor:pointer;color:var(--muted)}
@@ -667,6 +669,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
             </select></div>
           <div class="field" style="justify-content:flex-end"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)"><input type="checkbox" id="jfAllDay"> All day (multi day: 8 hours per day)</label></div>
         </div>
+        <div id="jfWorked" style="display:none;background:#e3f0fc;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0d47a1"></div>
         <div class="field" style="margin-bottom:12px"><label>Scope</label><textarea id="jfScope" rows="4"></textarea></div>
         <div class="g2" style="margin-bottom:16px">
           <div class="field"><label>Site access</label><input id="jfAccess"></div>
@@ -701,6 +704,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
     </div>
 
   </main>
+</div>
+
+<!-- HOURS WORKED MODAL -->
+<div id="hoursModal" style="display:none;position:fixed;inset:0;background:rgba(10,14,30,.7);z-index:8889;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:hidden">
+    <div style="background:var(--navy);padding:18px 24px">
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#fff">Confirm hours worked</div>
+      <div id="hmSub" style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px"></div>
+    </div>
+    <div style="padding:22px 24px">
+      <div class="field" style="margin-bottom:12px"><label>Date</label><input id="hmDate" type="date"></div>
+      <div class="g3" style="margin-bottom:12px">
+        <div class="field"><label>Start</label><input id="hmStart" type="time"></div>
+        <div class="field"><label>Finish</label><input id="hmEnd" type="time"></div>
+        <div class="field"><label>Breaks (min)</label><input id="hmBreak" type="number" min="0" step="5" value="0"></div>
+      </div>
+      <div class="field" style="margin-bottom:6px"><label>Total hours</label>
+        <input id="hmTotal" type="number" min="0" step="0.25" style="font-size:22px;font-weight:600;color:var(--navy)"></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Worked out from start, finish and breaks. Type over it to change.</div>
+      <div class="field" style="margin-bottom:12px"><label>Work notes (for the invoice)</label><textarea id="hmNotes" rows="3" placeholder="What was done, materials used..."></textarea></div>
+      <label id="hmCalWrap" style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:18px;cursor:pointer"><input type="checkbox" id="hmCal" checked> Update the calendar to the actual times</label>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-o" id="hmCancel">Cancel</button>
+        <button class="btn btn-p" id="hmSave">Confirm hours</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- SEND QUOTE MODAL -->
@@ -2505,6 +2535,7 @@ function buildEvent(j) {
     title = j.cname || 'Job';
     if (j.scope) lines.push(j.scope);
     if (j.notes) lines.push('', 'Notes: ' + j.notes);
+    if (j.worked) lines.push('', workedLine(j));
   } else {
     if (j.qno)    lines.push('Quote #' + j.qno);
     if (j.cmob)   lines.push('Phone: ' + j.cmob);
@@ -2513,6 +2544,7 @@ function buildEvent(j) {
     if (j.scope)  lines.push('', 'Scope:', j.scope);
     if (j.access) lines.push('', 'Access: ' + j.access);
     if (j.notes)  lines.push('', 'Notes: ' + j.notes);
+    if (j.worked) lines.push('', workedLine(j));
     lines.push('', 'Status: ' + JOB_STATUS[j.status].label);
   }
   var ev = {
@@ -2687,6 +2719,18 @@ function openJobForm(id, preset) {
   document.getElementById('jfStatus').value = j.status || 'unscheduled';
   document.getElementById('jfQuoteId').value = j.quoteId || '';
   document.getElementById('jobFormTitle').textContent = id ? 'Edit Job' : 'New Job';
+  var wb = document.getElementById('jfWorked');
+  if (j.worked) {
+    wb.style.display = 'flex'; wb.style.justifyContent = 'space-between'; wb.style.alignItems = 'center'; wb.style.gap = '10px';
+    wb.innerHTML = '<span><strong>Worked ' + escH(j.worked.hours) + ' h</strong>' + (j.worked.start ? ' · ' + escH(j.worked.start) + ' to ' + escH(j.worked.end) : '') +
+      (j.worked.breakMins ? ' · ' + escH(j.worked.breakMins) + ' min breaks' : '') + (j.worked.notes ? '<br><span style="font-size:12px">' + escH(j.worked.notes) + '</span>' : '') + '</span>' +
+      '<button class="hbtn hbtn-load" id="jfEditHours" type="button">Edit hours</button>';
+    document.getElementById('jfEditHours').addEventListener('click', function() {
+      var cur = jobsCache.filter(function(x) { return x.id === id; })[0]; if (!cur) return;
+      var data = Object.assign({}, cur); delete data.id;
+      askHoursWorked(data).then(function(d) { if (d) saveJobWithSync(id, d).then(function() { openJobForm(id); }); });
+    });
+  } else { wb.style.display = 'none'; wb.innerHTML = ''; }
   document.getElementById('btnJobDelete').style.display = id ? 'inline-flex' : 'none';
   document.getElementById('jobForm').style.display = 'block';
   document.getElementById('jobForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2718,6 +2762,15 @@ function saveJobForm() {
   var existing = editingJobId ? jobsCache.filter(function(x) { return x.id === editingJobId; })[0] : null;
   if (existing) { data.calEventId = existing.calEventId || null; data.calLink = existing.calLink || null; data.createdAt = existing.createdAt; }
   else data.createdAt = Date.now();
+  if ((data.status === 'done' && (!existing || existing.status !== 'done')) || (data.status === 'invoiced' && !(existing && existing.worked))) {
+    if (existing && existing.worked) data.worked = existing.worked;
+    askHoursWorked(data).then(function(d) { if (d) finishJobSave(d); });
+    return;
+  }
+  if (existing && existing.worked) data.worked = existing.worked;
+  finishJobSave(data);
+}
+function finishJobSave(data) {
   var btn = document.getElementById('btnJobSave');
   btn.disabled = true; btn.textContent = 'Saving...';
   var go2 = getCalToken() || data.status === 'unscheduled' ? Promise.resolve() :
@@ -2732,6 +2785,10 @@ function setJobStatus(id, status) {
   if (!j) return;
   if (status !== 'unscheduled' && !j.date) { openJobForm(id); document.getElementById('jfStatus').value = status; return; }
   var data = Object.assign({}, j, { status: status }); delete data.id;
+  if ((status === 'done' && j.status !== 'done') || (status === 'invoiced' && !j.worked)) {
+    askHoursWorked(data).then(function(d) { if (d) saveJobWithSync(id, d); else renderJobs(); });
+    return;
+  }
   saveJobWithSync(id, data);
 }
 function deleteJob(id) {
@@ -2751,7 +2808,9 @@ function fmtJobDate(j) {
   if (!j.date) return '<span style="color:var(--muted)">Not booked</span>';
   var d = new Date(j.date + 'T00:00:00');
   var s = d.toLocaleDateString('en-AU', { weekday:'short', day:'numeric', month:'short' });
-  return '<strong>' + s + '</strong><br><span style="font-size:11px;color:var(--muted)">' + (j.allDay ? 'All day' : (j.time || '') + ' · ' + (j.hours || '') + 'h') + '</span>';
+  var sub = j.worked ? '<span style="font-size:11px;color:#1565c0;font-weight:600">Worked ' + j.worked.hours + 'h' + (j.worked.start ? ' · ' + j.worked.start + '–' + j.worked.end : '') + '</span>'
+                     : '<span style="font-size:11px;color:var(--muted)">' + (j.allDay ? 'All day' : (j.time || '') + ' · ' + (j.hours || '') + 'h') + '</span>';
+  return '<strong>' + s + '</strong><br>' + sub;
 }
 function renderJobs() {
   updateCalBanner();
@@ -2823,15 +2882,89 @@ function renderJobs() {
 
   // Summary strip
   var toInvoice = groups[2].items.reduce(function(a, j) { return a + (Number(j.value) || 0); }, 0);
+  var hrsToInvoice = groups[2].items.reduce(function(a, j) { return a + (j.worked ? Number(j.worked.hours) || 0 : 0); }, 0);
   var week = new Date(); week.setDate(week.getDate() + 7);
   var weekStr = week.toISOString().slice(0, 10);
   var thisWeek = groups[1].items.filter(function(j) { return j.date >= todayStr && j.date <= weekStr; }).length;
   document.getElementById('jobsSummary').innerHTML =
     '<div class="js-stat"><div class="js-n">' + thisWeek + '</div><div class="js-l">Booked next 7 days</div></div>' +
     '<div class="js-stat"><div class="js-n">' + groups[0].items.length + '</div><div class="js-l">Waiting to book</div></div>' +
-    '<div class="js-stat"><div class="js-n">' + fmt(toInvoice) + '</div><div class="js-l">Done, not invoiced</div></div>';
+    '<div class="js-stat"><div class="js-n">' + (hrsToInvoice ? hrsToInvoice + ' h' + (toInvoice ? ' · ' + fmt(toInvoice) : '') : fmt(toInvoice)) + '</div><div class="js-l">Done, not invoiced</div></div>';
 }
 
+
+
+// ── Hours worked (asked when a job is marked done)
+function workedLine(j) {
+  var w = j.worked;
+  return 'Worked: ' + (w.start && w.end ? w.start + ' to ' + w.end + (w.breakMins ? ' (less ' + w.breakMins + ' min breaks)' : '') + ', ' : '') + w.hours + ' h' + (w.notes ? '\n' + w.notes : '');
+}
+function calcWorked() {
+  var a = document.getElementById('hmStart').value, b = document.getElementById('hmEnd').value;
+  if (!a || !b) return;
+  var mins = (hm(b) - hm(a)) * 60;
+  if (mins < 0) mins += 24 * 60;
+  mins -= parseFloat(document.getElementById('hmBreak').value) || 0;
+  document.getElementById('hmTotal').value = Math.max(0, Math.round(mins / 15) / 4);
+}
+var hmResolve = null;
+function askHoursWorked(data) {
+  return new Promise(function(resolve) {
+    hmResolve = resolve;
+    var w = data.worked || {};
+    var start = w.start || (data.allDay ? '08:00' : (data.time || '08:00'));
+    var endH = hm(start) + (data.allDay ? 8 : (data.hours || 2));
+    var end = w.end || (String(Math.floor(endH) % 24).padStart(2, '0') + ':' + String(Math.round((endH % 1) * 60)).padStart(2, '0'));
+    document.getElementById('hmSub').textContent = (data.cname || 'Job') + (data.suburb ? ' · ' + data.suburb : '');
+    document.getElementById('hmDate').value = w.date || data.date || ymd(new Date());
+    document.getElementById('hmStart').value = start;
+    document.getElementById('hmEnd').value = end;
+    document.getElementById('hmBreak').value = w.breakMins || 0;
+    document.getElementById('hmNotes').value = w.notes || '';
+    document.getElementById('hmCalWrap').style.display = data.allDay ? 'none' : 'flex';
+    document.getElementById('hmCal').checked = true;
+    calcWorked();
+    if (w.hours != null) document.getElementById('hmTotal').value = w.hours;
+    hmData = data;
+    document.getElementById('hoursModal').style.display = 'flex';
+    setTimeout(function() { document.getElementById('hmStart').focus(); }, 50);
+  });
+}
+var hmData = null;
+function closeHours(result) {
+  document.getElementById('hoursModal').style.display = 'none';
+  var r = hmResolve; hmResolve = null; hmData = null;
+  if (r) r(result);
+}
+function initHoursModal() {
+  ['hmStart', 'hmEnd', 'hmBreak'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', calcWorked);
+  });
+  document.getElementById('hmCancel').addEventListener('click', function() { closeHours(null); });
+  document.getElementById('hoursModal').addEventListener('click', function(e) { if (e.target === this) closeHours(null); });
+  document.getElementById('hmSave').addEventListener('click', function() {
+    var total = parseFloat(document.getElementById('hmTotal').value);
+    if (!(total > 0)) { alert('Enter the hours worked.'); return; }
+    var d = hmData;
+    d.worked = {
+      date: document.getElementById('hmDate').value,
+      start: document.getElementById('hmStart').value,
+      end: document.getElementById('hmEnd').value,
+      breakMins: parseFloat(document.getElementById('hmBreak').value) || 0,
+      hours: total,
+      notes: document.getElementById('hmNotes').value.trim(),
+      confirmedAt: Date.now()
+    };
+    if (!d.allDay && document.getElementById('hmCal').checked && d.worked.start && d.worked.end) {
+      d.date = d.worked.date || d.date;
+      d.time = d.worked.start;
+      var span = hm(d.worked.end) - hm(d.worked.start); if (span <= 0) span += 24;
+      d.hours = Math.round(span * 4) / 4;
+    }
+    closeHours(d);
+  });
+}
+document.addEventListener('DOMContentLoaded', initHoursModal);
 
 // ── Week planner
 var wkStart = mondayOf(new Date());
@@ -2895,7 +3028,7 @@ function renderWeek() {
       var top = (st - h0) * WK_ROW, ht = Math.max(22, len * WK_ROW - 3);
       g += '<div class="wk-job st-' + j.status + '" draggable="true" data-id="' + escH(j.id) + '" style="top:' + top + 'px;height:' + ht + 'px" title="' + escH(j.cname + (j.address ? '\n' + j.address : '')) + '">' +
         '<b>' + escH(j.cname) + '</b><span>' + fmtHM(st) + '–' + fmtHM(st + len) + (j.suburb ? ' · ' + escH(j.suburb) : '') + '</span>' +
-        (ht > 50 && j.jobType ? '<br><span>' + escH(j.jobType) + '</span>' : '') + '</div>';
+        (j.worked ? '<br><span style="color:#1565c0;font-weight:600">&#10003; ' + j.worked.hours + 'h worked</span>' : (ht > 50 && j.jobType ? '<br><span>' + escH(j.jobType) + '</span>' : '')) + '</div>';
     });
     if (ds === todayStr) {
       var now = new Date(), nh = now.getHours() + now.getMinutes() / 60;
