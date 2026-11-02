@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -240,6 +241,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .cal-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 16px;border-radius:8px;font-size:13px;margin-bottom:18px}
 .cal-banner.ok{background:#e8f5e9;color:#2e7d32}
 .cal-banner.off{background:#fffbea;color:#8a6200;border:1.5px solid #f0d98a}
+.qbo-banner{background:#f1f8f1;color:#2b5d2b;border:1.5px solid #cfe5cf}
+.qbo-banner.off{background:#f5f7fa;color:var(--muted);border:1.5px solid var(--stone)}
+.hbtn-qbo{background:#2CA01C;color:#fff}.hbtn-qbo:hover{background:#238016}
+.qbo-tag{display:inline-block;font-size:11px;font-weight:600;color:#2b7a1f;background:#e8f5e4;border-radius:5px;padding:3px 7px;text-decoration:none;white-space:nowrap}
+.qbo-lines{width:100%;border-collapse:collapse;font-size:13px}
+.qbo-lines th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:4px 4px 6px;font-weight:600}
+.qbo-lines td{padding:4px;vertical-align:top}
+.qbo-lines input,.qbo-lines select,.qbo-lines textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--stone);border-radius:6px;padding:6px 7px;box-sizing:border-box}
+.qbo-lines textarea{resize:vertical;min-height:34px}
+.qbo-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 6px}
+.qbo-tot{display:flex;justify-content:flex-end;gap:24px;font-size:13px;margin-top:10px;color:var(--muted)}
+.qbo-tot b{color:var(--ink);font-size:16px}
+@media(max-width:600px){.qbo-lines .qbo-prod{width:96px}}
 .jobs-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
 .js-stat{background:var(--cream);border-radius:8px;padding:14px 16px}
 .js-n{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy)}
@@ -630,6 +644,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
         <span><button class="btn btn-p" id="btnCalConnect" style="font-size:12px;padding:7px 14px">&#128197; Connect Google Calendar</button>
         <button class="btn btn-o" id="btnCalPull" style="font-size:12px;padding:7px 14px">&#8635; Refresh from Calendar</button></span>
       </div>
+      <div class="cal-banner qbo-banner off" id="qboBanner" style="display:none">
+        <span id="qboBannerMsg">QuickBooks not connected.</span>
+        <span><button class="btn btn-p" id="btnQboConnect" style="font-size:12px;padding:7px 14px;background:#2CA01C">Connect QuickBooks</button>
+        <button class="btn btn-o" id="btnQboDisconnect" style="font-size:12px;padding:7px 14px;display:none">Disconnect</button></span>
+      </div>
       <div class="view-bar">
         <span class="view-lbl">View</span>
         <div class="view-tog big"><button id="vWeek" class="on">&#128197; Calendar</button><button id="vList">&#9776; List</button></div>
@@ -679,6 +698,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
         <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
           <button class="btn btn-o" id="btnJobDelete" style="color:var(--red);display:none">Delete</button>
           <div style="display:flex;gap:10px;margin-left:auto">
+            <button class="btn btn-o" id="btnJobQbo" style="display:none;color:#2b7a1f;border-color:#9fd093">Send to QuickBooks</button>
+            <a class="btn btn-o" id="lnkJobQbo" target="_blank" rel="noopener" style="display:none;color:#2b7a1f;border-color:#9fd093;text-decoration:none">In QuickBooks &#8599;</a>
             <button class="btn btn-o" id="btnJobCancel">Cancel</button>
             <button class="btn btn-p" id="btnJobSave">Save Job</button>
           </div>
@@ -729,6 +750,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button class="btn btn-o" id="hmCancel">Cancel</button>
         <button class="btn btn-p" id="hmSave">Confirm hours</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEND TO QUICKBOOKS MODAL -->
+<div id="qboModal" style="display:none;position:fixed;inset:0;background:rgba(10,14,30,.7);z-index:8890;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:hidden">
+    <div style="background:#2CA01C;padding:18px 24px">
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#fff">Send invoice to QuickBooks</div>
+      <div id="qmSub" style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px"></div>
+    </div>
+    <div style="padding:20px 24px;overflow-y:auto">
+      <div class="g3" style="margin-bottom:14px">
+        <div class="field"><label>Invoice number</label><input id="qmNo" maxlength="21"></div>
+        <div class="field"><label>Invoice date</label><input id="qmDate" type="date"></div>
+        <div class="field"><label>Due date</label><input id="qmDue" type="date"></div>
+      </div>
+      <div class="g2" style="margin-bottom:14px">
+        <div class="field"><label>Customer</label><input id="qmCust"></div>
+        <div class="field"><label>Email</label><input id="qmEmail" type="email"></div>
+      </div>
+      <div class="field" style="margin-bottom:16px"><label>Billing address</label><input id="qmAddr"></div>
+      <table class="qbo-lines">
+        <thead><tr><th>Description</th><th class="qbo-prod" style="width:130px">Product</th><th style="width:110px;text-align:right">Amount inc GST</th><th style="width:30px"></th></tr></thead>
+        <tbody id="qmLines"></tbody>
+      </table>
+      <button class="hbtn hbtn-del" id="qmAdd" style="margin-top:6px">+ Add line</button>
+      <div class="qbo-tot"><span>GST <span id="qmGst">$0.00</span></span><span>Total inc GST <b id="qmTotal">$0.00</b></span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px">Creates the customer if they are new. Nothing is emailed to the client; send it from QuickBooks when you are ready.</div>
+      <div id="qmErr" style="display:none;background:#fdecea;color:#b71c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-o" id="qmCancel">Cancel</button>
+        <button class="btn btn-p" id="qmSend" style="background:#2CA01C">Send to QuickBooks</button>
       </div>
     </div>
   </div>
@@ -1645,6 +1700,7 @@ auth.onAuthStateChanged(function(user) {
     startRealtimeSync();
     startJobsSync();
     assignNextQuoteNumber();
+    qboRefresh();
   } else {
     currentUser = null;
     document.getElementById('loginOverlay').style.display = 'flex';
@@ -2739,6 +2795,7 @@ function openJobForm(id, preset) {
     });
   } else { wb.style.display = 'none'; wb.innerHTML = ''; }
   document.getElementById('btnJobDelete').style.display = id ? 'inline-flex' : 'none';
+  qboFormButtons(id ? Object.assign({ id: id }, j) : null);
   document.getElementById('jobForm').style.display = 'block';
   document.getElementById('jobForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -2875,6 +2932,7 @@ function renderJobs() {
         '<td><select class="js-status ' + JOB_STATUS[j.status].cls + '" data-id="' + escH(j.id) + '">' + sel + '</select>' +
           (j.calPending ? '<br><span class="js-flag">Not in calendar yet</span>' : '') + '</td>' +
         '<td style="text-align:right;white-space:nowrap">' +
+          qboListCell(j) +
           (j.calLink ? '<a class="hbtn hbtn-del" target="_blank" rel="noopener" href="' + escH(j.calLink) + '" title="Open in Google Calendar">📅</a> ' : '') +
           '<button class="hbtn hbtn-load js-edit" data-id="' + escH(j.id) + '">' + (j.status === 'unscheduled' ? 'Book' : 'Edit') + '</button></td>' +
       '</tr>';
@@ -2884,6 +2942,7 @@ function renderJobs() {
   if (!jobsCache.length) html = '<div style="text-align:center;color:var(--muted);padding:30px 0;font-size:14px">No jobs yet. Book one from an accepted quote, or add a job directly.</div>';
   var list = document.getElementById('jobsList');
   list.innerHTML = html;
+  list.querySelectorAll('.js-qbo').forEach(function(b) { b.addEventListener('click', function() { openQboModal(this.getAttribute('data-id')); }); });
   list.querySelectorAll('.js-edit').forEach(function(b) { b.addEventListener('click', function() { openJobForm(this.getAttribute('data-id')); }); });
   list.querySelectorAll('.js-status').forEach(function(s) { s.addEventListener('change', function() { setJobStatus(this.getAttribute('data-id'), this.value); }); });
   var si = document.getElementById('btnShowInv');
@@ -3107,6 +3166,195 @@ function moveJob(id, date, hour, allDay) {
   p.then(function() { return saveJobWithSync(id, data); });
 }
 
+// ── QuickBooks (invoices sent one job at a time, only when you click)
+var QBO_ITEMS = ['Labour', 'Materials', 'Engineering', 'Other'];
+var qboState = { ready: false, connected: false, env: '', companyName: '' };
+var qboJobId = null;
+
+function qboFn(name) { return firebase.app().functions('australia-southeast1').httpsCallable(name); }
+function qboErr(err) {
+  var m = (err && (err.message || err.details)) || String(err);
+  return m.replace(/^(internal|failed-precondition|already-exists|not-found|invalid-argument):\s*/i, '');
+}
+function qboGuess(desc) {
+  var d = String(desc || '').toLowerCase();
+  if (/engineer|inspect|assess|report|certif|design|calc|computation|structural/.test(d)) return 'Engineering';
+  if (/material|supply|supplies|timber|sheet|fixings|hardware|concrete|steel|post|panel|delivery|hire|skip|tip/.test(d)) return 'Materials';
+  return 'Labour';
+}
+
+function qboRefresh() {
+  if (!currentUser) return Promise.resolve();
+  return qboFn('qboStatus')().then(function(r) {
+    qboState = { ready: true, connected: !!r.data.connected, env: r.data.env, companyName: r.data.companyName || '', expired: r.data.expired };
+  }).catch(function() {
+    qboState = { ready: false, connected: false }; // backend not deployed yet: keep QuickBooks hidden
+  }).then(function() {
+    qboBanner();
+    var p = document.getElementById('p9');
+    if (p && p.style.display === 'block') renderJobs();
+  });
+}
+function qboBanner() {
+  var el = document.getElementById('qboBanner');
+  if (!el) return;
+  el.style.display = qboState.ready ? 'flex' : 'none';
+  if (!qboState.ready) return;
+  var sand = qboState.env !== 'production' ? ' (sandbox test company)' : '';
+  el.className = 'cal-banner qbo-banner' + (qboState.connected ? '' : ' off');
+  document.getElementById('qboBannerMsg').textContent = qboState.connected
+    ? 'QuickBooks connected' + (qboState.companyName ? ': ' + qboState.companyName : '') + sand + '. Use Send to QuickBooks on a done job.'
+    : (qboState.expired ? 'QuickBooks connection expired. Connect again.' : 'QuickBooks not connected' + sand + '.');
+  document.getElementById('btnQboConnect').style.display = qboState.connected ? 'none' : 'inline-flex';
+  document.getElementById('btnQboDisconnect').style.display = qboState.connected ? 'inline-flex' : 'none';
+}
+function qboConnect() {
+  var b = document.getElementById('btnQboConnect');
+  b.disabled = true; b.textContent = 'Opening Intuit...';
+  qboFn('qboAuthStart')().then(function(r) { window.location.href = r.data.url; })
+    .catch(function(err) { alert('Could not start QuickBooks sign in.\n\n' + qboErr(err)); b.disabled = false; b.textContent = 'Connect QuickBooks'; });
+}
+function qboDisconnect() {
+  if (!confirm('Disconnect QuickBooks? Invoices already sent stay in QuickBooks.')) return;
+  qboFn('qboDisconnect')().then(qboRefresh).catch(function(err) { alert(qboErr(err)); });
+}
+function qboHandleReturn() {
+  var params = new URLSearchParams(window.location.search);
+  var st = params.get('qbo');
+  if (!st) return;
+  var msg = params.get('qbomsg');
+  history.replaceState(null, '', window.location.pathname);
+  setTimeout(function() {
+    go(IDX_JOBS, true);
+    if (st === 'connected') alert('QuickBooks connected.');
+    else alert('QuickBooks did not connect.' + (msg ? '\n\n' + msg : ''));
+  }, 800);
+}
+
+// Can this job be sent?
+function qboCanSend(j) { return qboState.connected && !(j.qbo && j.qbo.id) && (j.status === 'done' || j.status === 'invoiced'); }
+
+function qboLinesFor(j) {
+  var r = j.quoteId ? getHistory().filter(function(x) { return x.id === j.quoteId; })[0] : null;
+  var lines = [];
+  if (r && r.items && r.items.length) {
+    r.items.forEach(function(it) {
+      var desc = String(it.desc || it.description || '').trim();
+      var qty = Number(it.qty) || 0;
+      if (qty && qty !== 1) desc += ' (' + qty + (it.unit ? ' ' + it.unit : '') + ' @ ' + fmt(Number(it.unitCost) || 0) + ')';
+      lines.push({ description: desc, item: qboGuess(it.desc), amount: Math.round((Number(it.price) || 0) * 100) / 100 });
+    });
+    if (Number(r.extra)) lines.push({ description: 'Extras', item: 'Other', amount: Number(r.extra) });
+  } else {
+    var d = [j.jobType, j.scope].filter(Boolean).join('\n') || 'Works as agreed';
+    lines.push({ description: d, item: qboGuess(d), amount: Number(j.value) || 0 });
+  }
+  if (j.worked && j.worked.notes && lines.length) lines[0].description += '\n' + j.worked.notes;
+  return { lines: lines, quote: r };
+}
+
+function qboRow(l) {
+  var opts = QBO_ITEMS.map(function(n) { return '<option' + (n === l.item ? ' selected' : '') + '>' + n + '</option>'; }).join('');
+  return '<tr><td><textarea class="qm-d" rows="1">' + escH(l.description) + '</textarea></td>' +
+    '<td class="qbo-prod"><select class="qm-i">' + opts + '</select></td>' +
+    '<td><input class="qm-a" type="number" step="0.01" style="text-align:right" value="' + (l.amount || '') + '"></td>' +
+    '<td><button class="qbo-x" title="Remove line">&times;</button></td></tr>';
+}
+function qboReadLines() {
+  return Array.prototype.map.call(document.querySelectorAll('#qmLines tr'), function(tr) {
+    return { description: tr.querySelector('.qm-d').value.trim(), item: tr.querySelector('.qm-i').value, amount: parseFloat(tr.querySelector('.qm-a').value) || 0 };
+  }).filter(function(l) { return l.description || l.amount; });
+}
+function qboTotals() {
+  var t = qboReadLines().reduce(function(a, l) { return a + l.amount; }, 0);
+  document.getElementById('qmTotal').textContent = fmt(t);
+  document.getElementById('qmGst').textContent = fmt(t / 11);
+}
+function qboWireRows() {
+  document.querySelectorAll('#qmLines .qbo-x').forEach(function(b) {
+    b.onclick = function() { this.closest('tr').remove(); qboTotals(); };
+  });
+  document.querySelectorAll('#qmLines .qm-a').forEach(function(i) { i.oninput = qboTotals; });
+}
+
+function openQboModal(jobId) {
+  var j = jobsCache.filter(function(x) { return x.id === jobId; })[0];
+  if (!j) return;
+  if (j.qbo && j.qbo.id) { window.open(j.qbo.link, '_blank'); return; }
+  if (!qboState.connected) { alert('Connect QuickBooks first (top of the Jobs page).'); return; }
+  qboJobId = jobId;
+  var built = qboLinesFor(j), r = built.quote;
+  var localYmd = function(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var today = localYmd(new Date());
+  var due = new Date(); due.setDate(due.getDate() + 7);
+  document.getElementById('qmSub').textContent = (j.cname || 'Client') + (j.qno ? ' · Quote #' + j.qno : '') + (r ? '' : ' · no linked quote, check the amount');
+  document.getElementById('qmNo').value = j.qno || '';
+  document.getElementById('qmDate').value = today;
+  document.getElementById('qmDue').value = localYmd(due);
+  document.getElementById('qmCust').value = j.cname || (r && r.cname) || '';
+  document.getElementById('qmEmail').value = j.cemail || (r && r.cemail) || '';
+  document.getElementById('qmAddr').value = r && r.caddr ? [r.caddr, r.csub, r.cpost].filter(Boolean).join(', ') : (j.address || '');
+  document.getElementById('qmLines').innerHTML = built.lines.map(qboRow).join('');
+  document.getElementById('qmErr').style.display = 'none';
+  var send = document.getElementById('qmSend'); send.disabled = false; send.textContent = 'Send to QuickBooks';
+  qboWireRows(); qboTotals();
+  document.getElementById('qboModal').style.display = 'flex';
+}
+function closeQboModal() { document.getElementById('qboModal').style.display = 'none'; qboJobId = null; }
+
+function sendQboInvoice() {
+  var j = jobsCache.filter(function(x) { return x.id === qboJobId; })[0];
+  if (!j) return;
+  var lines = qboReadLines();
+  var errBox = document.getElementById('qmErr');
+  var showErr = function(m) { errBox.textContent = m; errBox.style.display = 'block'; };
+  if (!lines.length) return showErr('Add at least one line.');
+  if (lines.some(function(l) { return !l.description; })) return showErr('Every line needs a description.');
+  if (lines.reduce(function(a, l) { return a + l.amount; }, 0) <= 0) return showErr('The total must be more than $0.');
+  var custName = document.getElementById('qmCust').value.trim();
+  if (!custName) return showErr('Add a customer name.');
+  var send = document.getElementById('qmSend');
+  send.disabled = true; send.textContent = 'Sending...'; errBox.style.display = 'none';
+  qboFn('qboCreateInvoice')({
+    jobId: j.id,
+    docNumber: document.getElementById('qmNo').value.trim(),
+    txnDate: document.getElementById('qmDate').value,
+    dueDate: document.getElementById('qmDue').value,
+    siteAddress: j.address || '',
+    customer: { name: custName, email: document.getElementById('qmEmail').value.trim(), phone: j.cmob || '', address: document.getElementById('qmAddr').value.trim() },
+    lines: lines
+  }).then(function(res) {
+    var r = res.data, jobId = j.id;
+    closeQboModal();
+    var msg = (r.existing ? 'That invoice number was already in QuickBooks, so it is linked to this job instead of making a copy.' :
+      'Invoice ' + (r.docNumber || '') + ' created in QuickBooks for ' + fmt(Number(r.total) || 0) + '.') +
+      (r.customerCreated ? '\nNew customer added: ' + r.customerName + '.' : '') +
+      (r.usedTjsNumber === false && !r.existing ? '\nQuickBooks numbered it itself (turn on custom transaction numbers to use TJS numbers).' : '') +
+      (r.warning ? '\n\nCheck: ' + r.warning : '');
+    var cur = jobsCache.filter(function(x) { return x.id === jobId; })[0];
+    if (cur && cur.status !== 'invoiced') {
+      if (confirm(msg + '\n\nMark this job as Invoiced?')) setJobStatus(jobId, 'invoiced');
+    } else alert(msg);
+    if (editingJobId === jobId) openJobForm(jobId);
+  }).catch(function(err) {
+    send.disabled = false; send.textContent = 'Send to QuickBooks';
+    showErr('QuickBooks said: ' + qboErr(err));
+    if (/expired|not connected/i.test(qboErr(err))) qboRefresh();
+  });
+}
+
+function qboFormButtons(j) {
+  var b = document.getElementById('btnJobQbo'), a = document.getElementById('lnkJobQbo');
+  b.style.display = j && j.id && qboCanSend(j) ? 'inline-flex' : 'none';
+  if (j && j.qbo && j.qbo.link) { a.href = j.qbo.link; a.style.display = 'inline-flex'; a.innerHTML = 'In QuickBooks' + (j.qbo.docNumber ? ' #' + escH(j.qbo.docNumber) : '') + ' &#8599;'; }
+  else a.style.display = 'none';
+}
+function qboListCell(j) {
+  if (j.qbo && j.qbo.link) return '<a class="qbo-tag" target="_blank" rel="noopener" href="' + escH(j.qbo.link) + '" title="Open in QuickBooks">QB' + (j.qbo.docNumber ? ' #' + escH(j.qbo.docNumber) : ' &#10003;') + '</a> ';
+  if (qboCanSend(j)) return '<button class="hbtn hbtn-qbo js-qbo" data-id="' + escH(j.id) + '" title="Send to QuickBooks">&#8594; QB</button> ';
+  return '';
+}
+
 function initJobs() {
   document.getElementById('nb9').addEventListener('click', function() { go(IDX_JOBS); });
   document.getElementById('vWeek').addEventListener('click', function() { setJobsView('week'); });
@@ -3131,6 +3379,16 @@ function initJobs() {
       alert('Could not refresh from Google Calendar.\n\n' + (err.message || err));
     });
   });
+  document.getElementById('btnQboConnect').addEventListener('click', qboConnect);
+  document.getElementById('btnQboDisconnect').addEventListener('click', qboDisconnect);
+  document.getElementById('btnJobQbo').addEventListener('click', function() { if (editingJobId) openQboModal(editingJobId); });
+  document.getElementById('qmCancel').addEventListener('click', closeQboModal);
+  document.getElementById('qmSend').addEventListener('click', sendQboInvoice);
+  document.getElementById('qmAdd').addEventListener('click', function() {
+    document.getElementById('qmLines').insertAdjacentHTML('beforeend', qboRow({ description: '', item: 'Labour', amount: '' }));
+    qboWireRows();
+  });
+  qboHandleReturn();
   document.getElementById('jfAllDay').addEventListener('change', function() {
     document.getElementById('jfTime').disabled = this.checked;
   });
