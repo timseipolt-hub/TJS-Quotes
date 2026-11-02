@@ -18,7 +18,7 @@ The Send to QuickBooks button stays hidden in the app until these steps are done
 
 ## 3. Deploy (15 min, on your PC)
 
-Needs Node 20 from nodejs.org.
+Needs Node from nodejs.org (LTS).
 
 ```
 npm install -g firebase-tools
