@@ -53,8 +53,8 @@ Open the app, go to Jobs, click **Connect QuickBooks**, sign in and choose the s
 ## How it works
 
 - Nothing goes to QuickBooks automatically. Each done job gets a **→ QB** button (list view, and in the job form).
-- The review screen pulls lines from the linked quote. Prices are GST inclusive; QuickBooks splits out the GST.
-- Lines map to four products: Labour, Materials, Engineering, Other. They're created in QuickBooks on first use.
+- The review screen bills hours worked x your hourly rate (excluding GST) under the Maintenance product, plus any materials from the quote. QuickBooks adds 10% GST. Your rate is remembered.
+- Products: Maintenance, Materials, Engineering, Other. Existing ones in QuickBooks are used; missing ones are created.
 - New customers are created; existing ones are matched by name.
 - A job can only be sent once, and an invoice number already in QuickBooks is linked rather than duplicated.
 - QuickBooks keys live in Firebase Secret Manager. Connection tokens are stored in Firestore `qboTokens`, which the web app never reads. If your Firestore rules have a catch all `allow read`, tighten them so only `users/{uid}` is readable.

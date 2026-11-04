@@ -24,7 +24,7 @@ function fakeQbo({ customNumbers = true, existingInvoice = null, customers = [] 
     if (path === '/item') { const it = { Id: String(nextId++), Name: b.Name }; items[b.Name] = it; return { status: 200, json: { Item: it } }; }
     if (path === '/customer') return { status: 200, json: { Customer: { Id: String(nextId++) } } };
     if (path === '/invoice') {
-      const total = b.Line.reduce((a, l) => a + l.SalesItemLineDetail.TaxInclusiveAmt, 0);
+      const total = b.Line.reduce((a, l) => a + l.Amount * 1.1, 0);
       return { status: 200, json: { Invoice: { Id: '555', DocNumber: b.DocNumber || '1001', TotalAmt: Math.round(total * 100) / 100 } } };
     }
     return { status: 404, json: {} };
@@ -36,18 +36,24 @@ const input = {
   jobId: 'j1', docNumber: 'TJS-081', txnDate: '2026-11-02',
   customer: { name: "Jo O'Brien", email: 'jo@example.com', phone: '0400 000 000', address: '12 Smith St, Ferntree Gully, 3156' },
   lines: [
-    { description: 'Replace 6 m paling fence', amount: 1320, item: 'Labour' },
-    { description: 'Treated pine palings and posts', amount: 485.5, item: 'Materials' }
+    { description: 'Replace 6 m paling fence', qty: 6.5, rate: 95, item: 'Maintenance' },
+    { description: 'Treated pine palings and posts', qty: 1, rate: 441.36, item: 'Materials' }
   ]
 };
 
-test('GST inclusive amounts become net + inclusive totals', () => {
-  const lines = qbo.buildLines(input.lines, { Labour: 'L', Materials: 'M', Other: 'O' }, '10');
-  assert.strictEqual(lines[0].Amount, 1200);
-  assert.strictEqual(lines[0].SalesItemLineDetail.TaxInclusiveAmt, 1320);
+test('hours x rate ex GST become QuickBooks lines', () => {
+  const lines = qbo.buildLines(input.lines, { Maintenance: 'MT', Materials: 'M', Other: 'O' }, '10');
+  assert.strictEqual(lines[0].Amount, 617.5);
+  assert.strictEqual(lines[0].SalesItemLineDetail.Qty, 6.5);
+  assert.strictEqual(lines[0].SalesItemLineDetail.UnitPrice, 95);
+  assert.strictEqual(lines[0].SalesItemLineDetail.ItemRef.value, 'MT');
   assert.strictEqual(lines[1].Amount, 441.36);
   assert.strictEqual(lines[1].SalesItemLineDetail.TaxCodeRef.value, '10');
-  assert.strictEqual(lines[1].SalesItemLineDetail.ItemRef.value, 'M');
+});
+
+test('old style GST inclusive amount still works', () => {
+  const lines = qbo.buildLines([{ description: 'x', amount: 1320, item: 'Labour' }], { Labour: 'L', Other: 'O' }, '10');
+  assert.strictEqual(lines[0].Amount, 1200);
 });
 
 test('creates customer, items and invoice with TJS number', async () => {
@@ -56,9 +62,9 @@ test('creates customer, items and invoice with TJS number', async () => {
   const r = await qbo.createInvoice(c, 'sandbox', input);
   const inv = f.sent.find(s => s.path === '/invoice').body;
   assert.strictEqual(inv.DocNumber, 'TJS-081');
-  assert.strictEqual(inv.GlobalTaxCalculation, 'TaxInclusive');
+  assert.strictEqual(inv.GlobalTaxCalculation, 'TaxExcluded');
   assert.strictEqual(inv.Line.length, 2);
-  assert.strictEqual(r.total, 1805.5);
+  assert.strictEqual(r.total, 1164.75);
   assert.ok(r.customerCreated);
   assert.ok(r.link.includes('sandbox') && r.link.includes('555'));
   assert.ok(!r.warning);

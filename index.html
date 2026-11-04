@@ -774,12 +774,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
       </div>
       <div class="field" style="margin-bottom:16px"><label>Billing address</label><input id="qmAddr"></div>
       <table class="qbo-lines">
-        <thead><tr><th>Description</th><th class="qbo-prod" style="width:130px">Product</th><th style="width:110px;text-align:right">Amount inc GST</th><th style="width:30px"></th></tr></thead>
+        <thead><tr><th>Description</th><th class="qbo-prod" style="width:120px">Product</th><th style="width:70px;text-align:right">Hours / Qty</th><th style="width:90px;text-align:right">Rate ex GST</th><th style="width:90px;text-align:right">Amount ex GST</th><th style="width:30px"></th></tr></thead>
         <tbody id="qmLines"></tbody>
       </table>
       <button class="hbtn hbtn-del" id="qmAdd" style="margin-top:6px">+ Add line</button>
-      <div class="qbo-tot"><span>GST <span id="qmGst">$0.00</span></span><span>Total inc GST <b id="qmTotal">$0.00</b></span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:12px">Creates the customer if they are new. Nothing is emailed to the client; send it from QuickBooks when you are ready.</div>
+      <div class="qbo-tot"><span>Subtotal <span id="qmSubtotal">$0.00</span></span><span>GST 10% <span id="qmGst">$0.00</span></span><span>Total inc GST <b id="qmTotal">$0.00</b></span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px">Rates exclude GST; QuickBooks adds 10%. Your hourly rate is remembered. Creates the customer if they are new. Nothing is emailed to the client; send it from QuickBooks when you are ready.</div>
       <div id="qmErr" style="display:none;background:#fdecea;color:#b71c1c;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-o" id="qmCancel">Cancel</button>
@@ -3167,7 +3167,8 @@ function moveJob(id, date, hour, allDay) {
 }
 
 // ── QuickBooks (invoices sent one job at a time, only when you click)
-var QBO_ITEMS = ['Labour', 'Materials', 'Engineering', 'Other'];
+var QBO_ITEMS = ['Maintenance', 'Materials', 'Engineering', 'Other'];
+var qboRate = '';
 var qboState = { ready: false, connected: false, env: '', companyName: '' };
 var qboJobId = null;
 
@@ -3180,11 +3181,14 @@ function qboGuess(desc) {
   var d = String(desc || '').toLowerCase();
   if (/engineer|inspect|assess|report|certif|design|calc|computation|structural/.test(d)) return 'Engineering';
   if (/material|supply|supplies|timber|sheet|fixings|hardware|concrete|steel|post|panel|delivery|hire|skip|tip/.test(d)) return 'Materials';
-  return 'Labour';
+  return 'Maintenance';
 }
+function qboRound(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
+function qboRateRef() { return db.collection('users').doc(currentUser.uid).collection('meta').doc('qbo'); }
 
 function qboRefresh() {
   if (!currentUser) return Promise.resolve();
+  qboRateRef().get().then(function(d) { if (d.exists && d.data().rate) qboRate = d.data().rate; }).catch(function() {});
   return qboFn('qboStatus')().then(function(r) {
     qboState = { ready: true, connected: !!r.data.connected, env: r.data.env, companyName: r.data.companyName || '', expired: r.data.expired };
   }).catch(function() {
@@ -3236,45 +3240,53 @@ function qboCanSend(j) { return qboState.connected && !(j.qbo && j.qbo.id) && (j
 
 function qboLinesFor(j) {
   var r = j.quoteId ? getHistory().filter(function(x) { return x.id === j.quoteId; })[0] : null;
-  var lines = [];
-  if (r && r.items && r.items.length) {
-    r.items.forEach(function(it) {
-      var desc = String(it.desc || it.description || '').trim();
-      var qty = Number(it.qty) || 0;
-      if (qty && qty !== 1) desc += ' (' + qty + (it.unit ? ' ' + it.unit : '') + ' @ ' + fmt(Number(it.unitCost) || 0) + ')';
-      lines.push({ description: desc, item: qboGuess(it.desc), amount: Math.round((Number(it.price) || 0) * 100) / 100 });
-    });
-    if (Number(r.extra)) lines.push({ description: 'Extras', item: 'Other', amount: Number(r.extra) });
-  } else {
-    var d = [j.jobType, j.scope].filter(Boolean).join('\n') || 'Works as agreed';
-    lines.push({ description: d, item: qboGuess(d), amount: Number(j.value) || 0 });
-  }
-  if (j.worked && j.worked.notes && lines.length) lines[0].description += '\n' + j.worked.notes;
+  var hours = j.worked && Number(j.worked.hours) ? Number(j.worked.hours) : (Number(j.hours) || 0);
+  var desc = [j.jobType || (r && r.services && r.services[0]) || '', j.scope || ''].filter(Boolean).join('\n') || 'Maintenance works';
+  if (j.worked && j.worked.notes) desc += '\n' + j.worked.notes;
+  if (j.date) desc += '\nCompleted ' + new Date(j.date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  var lines = [{ description: desc, item: 'Maintenance', qty: hours, rate: qboRate }];
+  // Carry materials across from the quote (quote prices include GST)
+  if (r && r.items) r.items.forEach(function(it) {
+    if (qboGuess(it.desc) !== 'Materials') return;
+    var qty = Number(it.qty) || 1;
+    var each = Number(it.unitCost) || ((Number(it.price) || 0) / qty);
+    lines.push({ description: String(it.desc || '').trim(), item: 'Materials', qty: qty, rate: qboRound(each / 1.1) });
+  });
   return { lines: lines, quote: r };
 }
 
 function qboRow(l) {
   var opts = QBO_ITEMS.map(function(n) { return '<option' + (n === l.item ? ' selected' : '') + '>' + n + '</option>'; }).join('');
-  return '<tr><td><textarea class="qm-d" rows="1">' + escH(l.description) + '</textarea></td>' +
+  return '<tr><td><textarea class="qm-d" rows="2">' + escH(l.description) + '</textarea></td>' +
     '<td class="qbo-prod"><select class="qm-i">' + opts + '</select></td>' +
-    '<td><input class="qm-a" type="number" step="0.01" style="text-align:right" value="' + (l.amount || '') + '"></td>' +
+    '<td><input class="qm-q" type="number" step="0.25" min="0" style="text-align:right" value="' + (l.qty === '' || l.qty == null ? '' : l.qty) + '"></td>' +
+    '<td><input class="qm-r" type="number" step="0.01" min="0" style="text-align:right" placeholder="$/h" value="' + (l.rate === '' || l.rate == null ? '' : l.rate) + '"></td>' +
+    '<td class="qm-amt" style="text-align:right;padding-top:10px;white-space:nowrap"></td>' +
     '<td><button class="qbo-x" title="Remove line">&times;</button></td></tr>';
 }
 function qboReadLines() {
   return Array.prototype.map.call(document.querySelectorAll('#qmLines tr'), function(tr) {
-    return { description: tr.querySelector('.qm-d').value.trim(), item: tr.querySelector('.qm-i').value, amount: parseFloat(tr.querySelector('.qm-a').value) || 0 };
-  }).filter(function(l) { return l.description || l.amount; });
+    return { description: tr.querySelector('.qm-d').value.trim(), item: tr.querySelector('.qm-i').value,
+             qty: parseFloat(tr.querySelector('.qm-q').value) || 0, rate: parseFloat(tr.querySelector('.qm-r').value) || 0 };
+  }).filter(function(l) { return l.description || l.qty || l.rate; });
 }
 function qboTotals() {
-  var t = qboReadLines().reduce(function(a, l) { return a + l.amount; }, 0);
-  document.getElementById('qmTotal').textContent = fmt(t);
-  document.getElementById('qmGst').textContent = fmt(t / 11);
+  var sub = 0;
+  document.querySelectorAll('#qmLines tr').forEach(function(tr) {
+    var a = qboRound((parseFloat(tr.querySelector('.qm-q').value) || 0) * (parseFloat(tr.querySelector('.qm-r').value) || 0));
+    tr.querySelector('.qm-amt').textContent = fmt(a);
+    sub += a;
+  });
+  var gst = qboRound(sub * 0.1);
+  document.getElementById('qmSubtotal').textContent = fmt(sub);
+  document.getElementById('qmGst').textContent = fmt(gst);
+  document.getElementById('qmTotal').textContent = fmt(sub + gst);
 }
 function qboWireRows() {
   document.querySelectorAll('#qmLines .qbo-x').forEach(function(b) {
     b.onclick = function() { this.closest('tr').remove(); qboTotals(); };
   });
-  document.querySelectorAll('#qmLines .qm-a').forEach(function(i) { i.oninput = qboTotals; });
+  document.querySelectorAll('#qmLines .qm-q, #qmLines .qm-r').forEach(function(i) { i.oninput = function() { document.getElementById('qmErr').style.display = 'none'; qboTotals(); }; });
 }
 
 function openQboModal(jobId) {
@@ -3287,7 +3299,7 @@ function openQboModal(jobId) {
   var localYmd = function(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   var today = localYmd(new Date());
   var due = new Date(); due.setDate(due.getDate() + 7);
-  document.getElementById('qmSub').textContent = (j.cname || 'Client') + (j.qno ? ' · Quote #' + j.qno : '') + (r ? '' : ' · no linked quote, check the amount');
+  document.getElementById('qmSub').textContent = (j.cname || 'Client') + (j.qno ? ' · Quote #' + j.qno : '') + (j.worked ? ' · ' + j.worked.hours + ' h worked' : ' · hours from booking, check them');
   document.getElementById('qmNo').value = j.qno || '';
   document.getElementById('qmDate').value = today;
   document.getElementById('qmDue').value = localYmd(due);
@@ -3310,7 +3322,11 @@ function sendQboInvoice() {
   var showErr = function(m) { errBox.textContent = m; errBox.style.display = 'block'; };
   if (!lines.length) return showErr('Add at least one line.');
   if (lines.some(function(l) { return !l.description; })) return showErr('Every line needs a description.');
-  if (lines.reduce(function(a, l) { return a + l.amount; }, 0) <= 0) return showErr('The total must be more than $0.');
+  var m = lines.filter(function(l) { return l.item === 'Maintenance'; })[0];
+  if (m && !m.rate) return showErr('Add your hourly rate (excluding GST).');
+  if (m && !m.qty) return showErr('Add the hours worked.');
+  if (lines.reduce(function(a, l) { return a + l.qty * l.rate; }, 0) <= 0) return showErr('The total must be more than $0.');
+  if (m && m.rate && m.rate !== Number(qboRate)) { qboRate = m.rate; qboRateRef().set({ rate: m.rate }, { merge: true }).catch(function() {}); }
   var custName = document.getElementById('qmCust').value.trim();
   if (!custName) return showErr('Add a customer name.');
   var send = document.getElementById('qmSend');
@@ -3385,7 +3401,7 @@ function initJobs() {
   document.getElementById('qmCancel').addEventListener('click', closeQboModal);
   document.getElementById('qmSend').addEventListener('click', sendQboInvoice);
   document.getElementById('qmAdd').addEventListener('click', function() {
-    document.getElementById('qmLines').insertAdjacentHTML('beforeend', qboRow({ description: '', item: 'Labour', amount: '' }));
+    document.getElementById('qmLines').insertAdjacentHTML('beforeend', qboRow({ description: '', item: 'Maintenance', qty: '', rate: qboRate }));
     qboWireRows();
   });
   qboHandleReturn();

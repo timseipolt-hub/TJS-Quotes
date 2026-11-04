@@ -7,7 +7,7 @@ const OAUTH_REVOKE = 'https://developer.api.intuit.com/v2/oauth2/tokens/revoke';
 const SCOPE = 'com.intuit.quickbooks.accounting';
 const MINOR = '75';
 
-const ITEM_NAMES = ['Labour', 'Materials', 'Engineering', 'Other'];
+const ITEM_NAMES = ['Maintenance', 'Labour', 'Materials', 'Engineering', 'Other'];
 
 function apiBase(env) {
   return env === 'production' ? 'https://quickbooks.api.intuit.com' : 'https://sandbox-quickbooks.api.intuit.com';
@@ -27,24 +27,30 @@ function guessItem(desc) {
   return 'Labour';
 }
 
-// Turn GST inclusive app lines into QuickBooks invoice lines.
+// Line value excluding GST: hours/qty x rate. Older callers sent a GST inclusive amount.
+function lineNet(l) {
+  if (l.rate != null && l.rate !== '') return round2((Number(l.qty) || 0) * Number(l.rate));
+  return round2((Number(l.amount) || 0) / 1.1);
+}
+
+// App lines (ex GST) -> QuickBooks lines. QuickBooks adds the GST.
 function buildLines(lines, itemIds, gstCodeId) {
   return lines
-    .filter(l => Math.abs(Number(l.amount) || 0) >= 0.005)
+    .map(l => Object.assign({}, l, { net: lineNet(l) }))
+    .filter(l => Math.abs(l.net) >= 0.005)
     .map(l => {
-      const gross = round2(l.amount);
-      const net = round2(gross / 1.1);
-      const desc = String(l.description || '').slice(0, 4000);
+      const hasRate = l.rate != null && l.rate !== '';
+      const qty = hasRate ? Number(l.qty) || 0 : 1;
+      const rate = hasRate ? round2(l.rate) : l.net;
       return {
         DetailType: 'SalesItemLineDetail',
-        Description: desc,
-        Amount: net,
+        Description: String(l.description || '').slice(0, 4000),
+        Amount: l.net,
         SalesItemLineDetail: {
           ItemRef: { value: itemIds[l.item] || itemIds.Other },
-          Qty: 1,
-          UnitPrice: net,
-          TaxCodeRef: { value: gstCodeId },
-          TaxInclusiveAmt: gross
+          Qty: qty,
+          UnitPrice: rate,
+          TaxCodeRef: { value: gstCodeId }
         }
       };
     });
@@ -123,7 +129,7 @@ async function ensureItems(c, names, gstId) {
       Name: name,
       Type: 'Service',
       IncomeAccountRef: { value: incomeId },
-      SalesTaxIncluded: true,
+      SalesTaxIncluded: false,
       SalesTaxCodeRef: { value: gstId }
     });
     ids[name] = made.Item.Id;
@@ -165,7 +171,7 @@ async function customNumbersOn(c) {
 async function createInvoice(c, env, input) {
   const lines = (input.lines || []).filter(l => ITEM_NAMES.includes(l.item));
   if (!lines.length) throw new Error('Add at least one line with an amount.');
-  const expected = round2(lines.reduce((a, l) => a + round2(l.amount), 0));
+  const expected = round2(lines.reduce((a, l) => a + lineNet(l), 0)); // ex GST
   if (expected <= 0) throw new Error('Invoice total must be more than $0.');
 
   const docNumber = String(input.docNumber || '').trim().slice(0, 21);
@@ -188,7 +194,7 @@ async function createInvoice(c, env, input) {
 
   const inv = {
     CustomerRef: { value: cust.id },
-    GlobalTaxCalculation: 'TaxInclusive',
+    GlobalTaxCalculation: 'TaxExcluded',
     Line: buildLines(lines, itemIds, gstId)
   };
   if (input.txnDate) inv.TxnDate = input.txnDate;
@@ -211,14 +217,15 @@ async function createInvoice(c, env, input) {
     customerName: cust.name,
     usedTjsNumber: !!useNumber
   };
-  if (Math.abs(round2(out.TotalAmt) - expected) > 0.02) {
-    result.warning = `QuickBooks total is ${out.TotalAmt}, app total was ${expected}. Check GST settings on the invoice.`;
+  const expectedInc = round2(expected * 1.1);
+  if (Math.abs(round2(out.TotalAmt) - expectedInc) > 0.05) {
+    result.warning = `QuickBooks total is ${out.TotalAmt}, app expected ${expectedInc} inc GST. Check GST settings on the invoice.`;
   }
   return result;
 }
 
 module.exports = {
   OAUTH_AUTHORIZE, OAUTH_TOKEN, OAUTH_REVOKE, SCOPE, ITEM_NAMES,
-  apiBase, appBase, round2, guessItem, buildLines, parseAddress, client,
+  apiBase, appBase, round2, guessItem, lineNet, buildLines, parseAddress, client,
   findGstCode, ensureItems, ensureCustomer, createInvoice
 };
