@@ -2,12 +2,15 @@
   "name": "tjs-quotes-functions",
   "private": true,
   "main": "index.js",
-  "engines": { "node": "22" },
+  "engines": {
+    "node": "22"
+  },
   "scripts": {
-    "test": "node --test test/qbo.test.js",
+    "test": "node --test test/qbo.test.js test/agent.test.js",
     "deploy": "firebase deploy --only functions"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.1.0"
   }

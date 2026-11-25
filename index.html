@@ -267,6 +267,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .js-tel{font-size:11px;color:var(--navy);text-decoration:none;margin-left:4px}
 #jobForm{display:none;border:2px solid var(--navy);border-radius:10px;padding:20px 22px;margin-bottom:22px;background:#fff}
 @media(max-width:700px){.jobs-summary{grid-template-columns:1fr}.hist-table{font-size:12px}}
+
+/* ── QUOTE ASSISTANT */
+#agentFab{position:fixed;right:22px;bottom:22px;z-index:8800;display:none;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;border-radius:28px;padding:13px 20px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 6px 24px rgba(27,79,138,.35)}
+#agentFab:hover{background:var(--navy2)}
+#agentFab .spark{color:var(--gold2)}
+#agentPanel{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:100vw;z-index:8850;background:#fff;box-shadow:-8px 0 30px rgba(10,14,30,.18);display:none;flex-direction:column}
+.ag-head{display:flex;align-items:center;gap:8px;padding:16px 18px;background:var(--navy);color:#fff}
+.ag-head .ag-title{font-family:'DM Serif Display',serif;font-size:18px;flex:1}
+.ag-head button{background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ag-head button:hover{background:rgba(255,255,255,.22)}
+#agentLog{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--cream)}
+.ag-msg{max-width:88%;padding:10px 13px;border-radius:12px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.ag-msg.user{align-self:flex-end;background:var(--navy);color:#fff;border-bottom-right-radius:4px}
+.ag-msg.bot{align-self:flex-start;background:#fff;color:var(--ink);border:1px solid var(--stone);border-bottom-left-radius:4px}
+.ag-msg.err{align-self:stretch;background:#fdecea;color:var(--red);border:1px solid #f5c2c0}
+.ag-msg img{max-width:72px;max-height:72px;border-radius:6px;margin:4px 4px 0 0;vertical-align:top}
+.ag-applied{align-self:flex-start;font-size:12px;color:var(--green);background:#e8f5ee;border:1px solid #bfe3cf;border-radius:8px;padding:7px 10px;display:flex;gap:10px;align-items:center}
+.ag-applied button{background:none;border:none;color:var(--navy);text-decoration:underline;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;padding:0}
+.ag-intro{font-size:13px;color:var(--muted);line-height:1.6;background:#fff;border:1px dashed var(--stone);border-radius:10px;padding:12px 14px}
+.ag-intro b{color:var(--navy)}
+.ag-typing{align-self:flex-start;font-size:12px;color:var(--muted);font-style:italic}
+.ag-foot{border-top:1px solid var(--stone);padding:10px 12px;background:#fff}
+#agentThumbs{display:flex;gap:6px;flex-wrap:wrap}
+#agentThumbs:not(:empty){margin-bottom:8px}
+#agentThumbs span{position:relative}
+#agentThumbs img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--stone)}
+#agentThumbs button{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:10px;cursor:pointer;line-height:18px;padding:0}
+.ag-row{display:flex;gap:8px;align-items:flex-end}
+#agentInput{flex:1;resize:none;font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 11px;border:1.5px solid var(--stone);border-radius:8px;background:var(--cream);color:var(--ink);outline:none;min-height:42px;max-height:140px}
+#agentInput:focus{border-color:var(--navy);background:#fff}
+.ag-icon{background:var(--cream);border:1.5px solid var(--stone);border-radius:8px;width:42px;height:42px;cursor:pointer;font-size:17px;flex-shrink:0}
+#agentSend{background:var(--navy);color:#fff;border:none;border-radius:8px;height:42px;padding:0 16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0}
+#agentSend:disabled{opacity:.5;cursor:default}
+.ag-hint{font-size:11px;color:var(--muted);margin-top:6px}
+@media(min-width:1180px){body.ag-open .layout{margin-right:400px}}
+@media(max-width:700px){#agentPanel{width:100vw}#agentFab{right:14px;bottom:14px}}
 </style>
 </head>
 <body>
@@ -344,6 +380,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
           </div>
         </div>
         <div style="margin-top:20px">
+          <button id="btnWelcomeAgent" style="background:var(--gold);border:none;color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;padding:11px 20px;margin-bottom:14px">&#10022; Describe a job to the Quote Assistant</button><br>
           <button id="btnWelcomeDashboard" style="background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline">View Dashboard</button>
         </div>
       </div>
@@ -756,6 +793,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 </div>
 
 <!-- SEND TO QUICKBOOKS MODAL -->
+
+<!-- QUOTE ASSISTANT -->
+<button id="agentFab" title="Quote Assistant"><span class="spark">&#10022;</span> Quote Assistant</button>
+<div id="agentPanel" role="dialog" aria-label="Quote Assistant">
+  <div class="ag-head">
+    <div class="ag-title">&#10022; Quote Assistant</div>
+    <button id="agentNew" title="Start a new conversation">New chat</button>
+    <button id="agentClose" title="Close">&#10005;</button>
+  </div>
+  <div id="agentLog"></div>
+  <div class="ag-foot">
+    <div id="agentThumbs"></div>
+    <div class="ag-row">
+      <button class="ag-icon" id="agentPhotoBtn" title="Add site photos">&#128247;</button>
+      <input type="file" id="agentPhoto" accept="image/*" multiple style="display:none">
+      <textarea id="agentInput" rows="1" placeholder="Describe the job, or ask for a change..."></textarea>
+      <button id="agentSend">Send</button>
+    </div>
+    <div class="ag-hint">Changes go straight into the quote form. Check prices before you send.</div>
+  </div>
+</div>
 <div id="qboModal" style="display:none;position:fixed;inset:0;background:rgba(10,14,30,.7);z-index:8890;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:hidden">
     <div style="background:#2CA01C;padding:18px 24px">
@@ -3410,6 +3468,217 @@ function initJobs() {
   });
 }
 document.addEventListener('DOMContentLoaded', initJobs);
+
+
+// ── QUOTE ASSISTANT ───────────────────────────────────────────────────────────
+// Talks to the quoteAgent Cloud Function. The function returns the whole
+// conversation each turn; it lives here for this session only.
+var agentMsgs = [];
+var agentBusy = false;
+var agentPhotos = []; // { mediaType, data, url }
+
+function agentFn() { return firebase.app().functions('australia-southeast1').httpsCallable('quoteAgent', { timeout: 300000 }); }
+
+function agentOpen(fresh) {
+  if (fresh) { startNewQuote(); agentReset(); go(IDX_DETAILS, true); }
+  document.getElementById('agentPanel').style.display = 'flex';
+  document.body.classList.add('ag-open');
+  document.getElementById('agentFab').style.display = 'none';
+  if (!document.getElementById('agentLog').children.length) agentReset();
+  setTimeout(function() { document.getElementById('agentInput').focus(); }, 50);
+}
+function agentClose() {
+  document.getElementById('agentPanel').style.display = 'none';
+  document.body.classList.remove('ag-open');
+  document.getElementById('agentFab').style.display = currentUser ? 'flex' : 'none';
+}
+function agentReset() {
+  agentMsgs = [];
+  agentPhotos = [];
+  agentRenderThumbs();
+  document.getElementById('agentLog').innerHTML =
+    '<div class="ag-intro">Tell me about the job and I\'ll fill in this quote, priced from your past quotes. For example:<br><br>' +
+    '<b>"Replace 24m of paling fence with 1.8m Colorbond at 12 Main Rd Sebastopol for Sarah Lee, 0412 345 678. Old fence to be removed."</b><br><br>' +
+    'Add site photos with &#128247;. Then ask for changes: "drop the rubbish removal", "make it Cost Plus", "tidy the descriptions".</div>';
+}
+
+function agentHtml(text) {
+  return escH(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+function agentAdd(cls, text, photos) {
+  var log = document.getElementById('agentLog');
+  var d = document.createElement('div');
+  d.className = 'ag-msg ' + cls;
+  d.innerHTML = agentHtml(text) + (photos || []).map(function(p) { return '<br><img src="' + p.url + '" alt="">'; }).join('');
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+
+// Shrink photos before upload so each turn stays small
+function agentReadPhoto(file) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    var src = URL.createObjectURL(file);
+    img.onload = function() {
+      var max = 1280, w = img.width, h = img.height, k = Math.min(1, max / Math.max(w, h));
+      var c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(src);
+      var url = c.toDataURL('image/jpeg', 0.8);
+      resolve({ mediaType: 'image/jpeg', data: url.split(',')[1], url: url });
+    };
+    img.onerror = function() { URL.revokeObjectURL(src); reject(new Error('Could not read ' + file.name)); };
+    img.src = src;
+  });
+}
+function agentRenderThumbs() {
+  var wrap = document.getElementById('agentThumbs');
+  wrap.innerHTML = agentPhotos.map(function(p, i) {
+    return '<span><img src="' + p.url + '" alt=""><button data-i="' + i + '" title="Remove">&#10005;</button></span>';
+  }).join('');
+  wrap.querySelectorAll('button').forEach(function(b) {
+    b.addEventListener('click', function() { agentPhotos.splice(+this.dataset.i, 1); agentRenderThumbs(); });
+  });
+}
+
+// Put the agent's changes into the quote form
+function applyAgentDraft(d) {
+  var map = { cname:'cname', cmob:'cmob', cemail:'cemail', caddr:'caddr', csub:'csub', cpost:'cpost',
+              saddr:'saddr', ssub:'ssub', spost:'spost', saccess:'saccess', notes:'notes', pprog:'pprog' };
+  var changed = [];
+  Object.keys(map).forEach(function(k) {
+    if (d[k] !== undefined) { document.getElementById(map[k]).value = d[k]; changed.push(k); }
+  });
+  if (d.services) {
+    document.getElementById('chipWrap').querySelectorAll('.chip').forEach(function(c) {
+      c.classList.toggle('on', d.services.indexOf(c.textContent.trim()) >= 0);
+    });
+    changed.push('services');
+  }
+  if (d.items) {
+    document.getElementById('liWrap').innerHTML = '';
+    d.items.forEach(function(it) { addLI(it.desc, it.unit, it.qty, it.unitCost); });
+    changed.push('items');
+  }
+  if (d.extra !== undefined) { document.getElementById('tExtra').value = d.extra || ''; changed.push('extra'); }
+  if (d.incs) { document.getElementById('incWrap').innerHTML = ''; d.incs.forEach(function(t) { addIE('inc', t); }); changed.push('incs'); }
+  if (d.excs) { document.getElementById('excWrap').innerHTML = ''; d.excs.forEach(function(t) { addIE('exc', t); }); changed.push('excs'); }
+  if (d.pbasis) { document.getElementById('pbasis').value = d.pbasis; changed.push('pbasis'); }
+  if (d.costPlusPct !== undefined) { document.getElementById('costPlusPct').value = d.costPlusPct; changed.push('pbasis'); }
+  if (d.validDays) {
+    var base = document.getElementById('qdate').value ? new Date(document.getElementById('qdate').value) : new Date();
+    base.setDate(base.getDate() + d.validDays);
+    document.getElementById('qvalid').value = base.toISOString().split('T')[0];
+    changed.push('qvalid');
+  }
+  calcTot();
+  updatePay();
+  return changed;
+}
+
+var AGENT_LABELS = { items:'line items', services:'services', incs:'inclusions', excs:'exclusions', notes:'notes',
+                     pbasis:'pricing basis', pprog:'progress payment', extra:'extras', qvalid:'valid until' };
+function agentSummary(changed) {
+  var client = changed.some(function(k) { return /^c/.test(k) && !AGENT_LABELS[k]; });
+  var site = changed.some(function(k) { return /^s(addr|sub|post|access)/.test(k); });
+  var out = [];
+  if (client) out.push('client');
+  if (site) out.push('site');
+  changed.forEach(function(k) { if (AGENT_LABELS[k] && out.indexOf(AGENT_LABELS[k]) < 0) out.push(AGENT_LABELS[k]); });
+  return out.join(', ');
+}
+
+function agentSend() {
+  if (agentBusy) return;
+  if (!currentUser) { alert('Please sign in first.'); return; }
+  var input = document.getElementById('agentInput');
+  var text = input.value.trim();
+  if (!text && !agentPhotos.length) return;
+  var photos = agentPhotos.slice();
+  agentAdd('user', text || '(photos)', photos);
+  input.value = ''; input.style.height = '';
+  agentPhotos = []; agentRenderThumbs();
+
+  agentBusy = true;
+  document.getElementById('agentSend').disabled = true;
+  var log = document.getElementById('agentLog');
+  var typing = document.createElement('div');
+  typing.className = 'ag-typing';
+  typing.textContent = 'Working on the quote...';
+  log.appendChild(typing); log.scrollTop = log.scrollHeight;
+
+  var form = collectQuoteRecord();
+  delete form.savedAt;
+  var today = new Date();
+  agentFn()({
+    messages: agentMsgs, text: text, form: form,
+    images: photos.map(function(p) { return { mediaType: p.mediaType, data: p.data }; }),
+    today: today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0')
+  }).then(function(r) {
+    var res = r.data || {};
+    agentMsgs = res.messages || agentMsgs;
+    typing.remove();
+    var draft = res.draft || {};
+    if (Object.keys(draft).length) {
+      var before = collectQuoteRecord();
+      var beforeId = currentQuoteId, beforeStatus = currentQuoteStatus;
+      var changed = applyAgentDraft(draft);
+      if (draft.items) go(IDX_SCOPE, true);
+      saveAsDraft();
+      var note = document.createElement('div');
+      note.className = 'ag-applied';
+      note.innerHTML = '<span>&#10003; Updated ' + escH(agentSummary(changed)) + ' · total ' + document.getElementById('tGrand').textContent + '</span><button>Undo</button>';
+      note.querySelector('button').addEventListener('click', function() {
+        loadQuoteFromRecord(Object.assign({ id: beforeId }, before));
+        currentQuoteStatus = beforeStatus;
+        saveAsDraft();
+        note.innerHTML = '<span>Undone</span>';
+      });
+      log.appendChild(note);
+    }
+    if (res.reply) agentAdd('bot', res.reply);
+  }).catch(function(err) {
+    typing.remove();
+    var msg = (err && err.message) || 'Something went wrong.';
+    if (err && (err.code === 'functions/not-found' || err.code === 'not-found')) msg = 'The Quote Assistant is not deployed yet. See AGENT_SETUP.md.';
+    agentAdd('err', msg);
+  }).then(function() {
+    agentBusy = false;
+    document.getElementById('agentSend').disabled = false;
+    document.getElementById('agentLog').scrollTop = 1e9;
+  });
+}
+
+function initAgent() {
+  document.getElementById('agentFab').addEventListener('click', function() { agentOpen(false); });
+  document.getElementById('btnWelcomeAgent').addEventListener('click', function() { agentOpen(true); });
+  document.getElementById('agentClose').addEventListener('click', agentClose);
+  document.getElementById('agentNew').addEventListener('click', function() {
+    if (agentMsgs.length && !confirm('Start a new conversation? The quote form keeps its current contents.')) return;
+    agentReset();
+  });
+  document.getElementById('agentSend').addEventListener('click', agentSend);
+  var input = document.getElementById('agentInput');
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); agentSend(); }
+  });
+  input.addEventListener('input', function() { this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 140) + 'px'; });
+  document.getElementById('agentPhotoBtn').addEventListener('click', function() { document.getElementById('agentPhoto').click(); });
+  document.getElementById('agentPhoto').addEventListener('change', function() {
+    var files = Array.prototype.slice.call(this.files || [], 0, Math.max(0, 4 - agentPhotos.length));
+    this.value = '';
+    Promise.all(files.map(agentReadPhoto)).then(function(ps) { agentPhotos = agentPhotos.concat(ps); agentRenderThumbs(); })
+      .catch(function(e) { alert(e.message); });
+  });
+  auth.onAuthStateChanged(function(user) {
+    var open = document.getElementById('agentPanel').style.display === 'flex';
+    document.getElementById('agentFab').style.display = user && !open ? 'flex' : 'none';
+    if (!user) { agentClose(); agentReset(); }
+  });
+}
+document.addEventListener('DOMContentLoaded', initAgent);
 
 })(); // end IIFE
 </script>

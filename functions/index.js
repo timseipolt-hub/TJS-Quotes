@@ -174,3 +174,44 @@ exports.qboCreateInvoice = onCall(opts, async req => {
     throw new HttpsError('internal', e.message || 'QuickBooks rejected the invoice.');
   }
 });
+
+// 6. Quote Assistant: Claude drafts and revises the quote in the form
+const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+const agent = require('./agent');
+let anthropic = null;
+function anthropicClient() {
+  if (!anthropic) {
+    const Anthropic = require('@anthropic-ai/sdk').default;
+    anthropic = new Anthropic({ apiKey: String(ANTHROPIC_API_KEY.value() || '').trim(), timeout: 240000, maxRetries: 2 });
+  }
+  return anthropic;
+}
+
+exports.quoteAgent = onCall({ region: REGION, secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300, memory: '512MiB' }, async req => {
+  const uid = needUser(req);
+  const d = req.data || {};
+  if (!String(d.text || '').trim() && !(d.images || []).length) throw new HttpsError('invalid-argument', 'Type a message first.');
+  if (JSON.stringify(d).length > 8 * 1024 * 1024) throw new HttpsError('invalid-argument', 'This conversation is too long. Start a new chat.');
+  const userDoc = db.collection('users').doc(uid);
+  try {
+    return await agent.runTurn({
+      client: anthropicClient(),
+      loadQuotes: async () => {
+        const snap = await userDoc.collection('quotes').orderBy('savedAt', 'desc').limit(400).get();
+        return snap.docs.map(x => x.data());
+      },
+      loadRate: async () => {
+        const m = await userDoc.collection('meta').doc('qbo').get();
+        return m.exists && Number(m.data().rate) || null;
+      }
+    }, { messages: d.messages, text: d.text, form: d.form, images: d.images, today: d.today });
+  } catch (e) {
+    console.error('quoteAgent', e);
+    const Anthropic = require('@anthropic-ai/sdk').default;
+    if (e instanceof Anthropic.AuthenticationError) throw new HttpsError('failed-precondition', 'The assistant is not set up: check the ANTHROPIC_API_KEY secret.');
+    if (e instanceof Anthropic.RateLimitError) throw new HttpsError('resource-exhausted', 'The assistant is busy. Try again in a minute.');
+    if (e instanceof Anthropic.BadRequestError) throw new HttpsError('invalid-argument', 'The assistant could not read this conversation. Start a new chat.');
+    if (e instanceof Anthropic.APIError) throw new HttpsError('unavailable', 'The assistant is unavailable right now. Try again shortly.');
+    throw new HttpsError('internal', e.message || 'The assistant failed.');
+  }
+});
